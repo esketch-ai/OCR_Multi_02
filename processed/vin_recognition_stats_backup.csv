@@ -1,0 +1,220 @@
+Date,Filename,Extracted_VIN,Is_Valid,Validation_Msg,Confidence_Score
+2026-01-21 00:26:15,Vehicle_Regist_Cert/sample_ocr/6_차대번호.png_p1,KMJTA18XPPC003630,True,Valid,0.0
+2026-01-21 00:26:19,Vehicle_Regist_Cert/01. 사업대상/03. 경북/01.새천년미소(4대)/(주)새천년미소_경북70자2533_전기.pdf_p1,KMJHA19VPNC002438,True,Valid,0.0
+2026-01-21 00:26:21,Vehicle_Regist_Cert/01. 사업대상/03. 경북/01.새천년미소(4대)/(주)새천년미소_경북70자2404_전기.pdf_p1,KMJTA18XPPC002579,True,Valid,0.0
+2026-01-21 00:26:22,Vehicle_Regist_Cert/01. 사업대상/03. 경북/01.새천년미소(4대)/(주)새천년미소_경북70자2491_전기.pdf_p1,KMJHA19VPNC002437,True,Valid,0.0
+2026-01-21 00:26:24,Vehicle_Regist_Cert/01. 사업대상/03. 경북/01.새천년미소(4대)/(주)새천년미소_경북70자2411_전기.pdf_p1,KMJTA18XPPC002578,True,Valid,0.0
+2026-01-21 00:26:25,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6323.pdf_p1,KMJTA18XPNC002222,True,Valid,0.0
+2026-01-21 00:26:26,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6318.pdf_p1,KMJTA18XPPC003144,True,Valid,0.0
+2026-01-21 00:26:27,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6319.pdf_p1,KMJTA18XPPC003145,True,Valid,0.0
+2026-01-21 00:26:29,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6356.pdf_p1,KMJTA18XPNC001451,True,Valid,0.0
+2026-01-21 00:26:30,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6347.pdf_p1,KMJTA18XPNC002223,True,Valid,0.0
+2026-01-21 00:26:32,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6346.pdf_p1,KMJTA18XPPC003146,True,Valid,0.0
+2026-01-21 00:26:33,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6378.pdf_p1,KMJTA18XPNC002225,True,Valid,0.0
+2026-01-21 00:26:34,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6351.pdf_p1,KMJTA18XPPC003147,True,Valid,0.0
+2026-01-21 00:26:36,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6348.pdf_p1,KMJTA18XPNC002221,True,Valid,0.0
+2026-01-21 00:26:37,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6377.pdf_p1,KMJTA18XPNC002224,True,Valid,0.0
+2026-01-21 00:26:38,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6376.pdf_p1,KMJTA18XPNC002226,True,Valid,0.0
+2026-01-21 00:26:40,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6365.pdf_p1,KMJTA18XPNC001452,True,Valid,0.0
+2026-01-21 00:26:41,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6302.pdf_p1,KMJTA18XPNC002220,True,Valid,0.0
+2026-01-21 00:26:42,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6315.pdf_p1,KMJTA18XPPC003143,True,Valid,0.0
+2026-01-21 00:26:44,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6301.pdf_p1,KMJTA18XPNC002219,True,Valid,0.0
+2026-01-21 00:26:45,Vehicle_Regist_Cert/01. 사업대상/03. 경북/03.영천교통(16대)/경북70자6310.pdf_p1,KMJTA18XPPC003142,True,Valid,0.0
+2026-01-21 00:26:47,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6709_전기_자동차등록증.pdf_p1,KMJTA18XPNC002076,True,Valid,0.0
+2026-01-21 00:26:48,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6702_전기_자동차등록증.pdf_p1,KMJTA18XPPC003705,True,Valid,0.0
+2026-01-21 00:26:50,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6719_전기_자동차등록증.pdf_p1,CX220110B,False,Invalid length: 9,0.0
+2026-01-21 00:26:51,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6731_전기_자동차등록증.pdf_p1,KMJTA18XPRC500666,True,Valid,0.0
+2026-01-21 00:26:53,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6717_전기_자동차등록증.pdf_p1,KMJTA18XPNC002077,True,Valid,0.0
+2026-01-21 00:26:54,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6707_전기_자동차등록증.pdf_p1,KMJTA18XPRC500559,True,Valid,0.0
+2026-01-21 00:26:56,Vehicle_Regist_Cert/01. 사업대상/03. 경북/02.상주여객자동차(7대)/경북70자6735_전기_자동차등록증.pdf_p1,CX220110B,False,Invalid length: 9,0.0
+2026-01-21 00:26:57,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7338_전기.pdf_p1,KMJTA18XPRC004231,True,Valid,0.0
+2026-01-21 00:26:58,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7344_전기.pdf_p1,KMJTA18XPRC004230,True,Valid,0.0
+2026-01-21 00:27:00,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7312_전기.pdf_p1,KMJTA18XPRC004229,True,Valid,0.0
+2026-01-21 00:27:01,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7318_전기.pdf_p1,KMJTA18XPPC003684,True,Valid,0.0
+2026-01-21 00:27:02,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7362_전기.pdf_p1,KMJTA18XPPC003685,True,Valid,0.0
+2026-01-21 00:27:03,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7343_전기.pdf_p1,KMJTA18XPPC003686,True,Valid,0.0
+2026-01-21 00:27:04,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7302_전기.pdf_p1,KMJTA18XPPC003669,True,Valid,0.0
+2026-01-21 00:27:06,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경북70자7373_전기.pdf_p1,KMJTA18XPPC003670,True,Valid,0.0
+2026-01-21 00:27:07,Vehicle_Regist_Cert/01. 사업대상/03. 경북/04.경산버스(9대)/경븍70자7512_전기.pdf_p1,KMJTA18XPPC003671,True,Valid,0.0
+2026-01-21 00:27:10,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7066.pdf_p1,KM90G8AHENNBD6053,True,Valid,0.0
+2026-01-21 00:27:11,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7106.pdf_p1,KM90G9AHEMNBD6092,True,Valid,0.0
+2026-01-21 00:27:13,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7065.pdf_p1,KM90G8AHENNBD6051,True,Valid,0.0
+2026-01-21 00:27:14,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7076.pdf_p1,KMJTA18XPRC004041,True,Valid,0.0
+2026-01-21 00:27:16,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7063.pdf_p1,KM90G8AHENNBD6052,True,Valid,0.0
+2026-01-21 00:27:18,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7011.pdf_p1,KM90G9AHEMNBD6095,True,Valid,0.0
+2026-01-21 00:27:19,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7014.pdf_p1,KM90G9AHEMNBD6094,True,Valid,0.0
+2026-01-21 00:27:21,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7025.pdf_p1,KMJTA18XPRC004042,True,Valid,0.0
+2026-01-21 00:27:23,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7024.pdf_p1,KM90G9AHEMNBD6096,True,Valid,0.0
+2026-01-21 00:27:24,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7026.pdf_p1,KMJTA18XPRC004043,True,Valid,0.0
+2026-01-21 00:27:25,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7052.pdf_p1,KM90G9AHEMNBD6091,True,Valid,0.0
+2026-01-21 00:27:27,Vehicle_Regist_Cert/01. 사업대상/02. 제주/01. 삼영교통(12대)/제주79자7078.pdf_p1,KMJTA18XPRC004039,True,Valid,0.0
+2026-01-21 00:27:28,Vehicle_Regist_Cert/01. 사업대상/02. 제주/03. 서귀포운수(3대)/제주79자7502.pdf_p1,KM90G8AHENNBD6023,True,Valid,0.0
+2026-01-21 00:27:29,Vehicle_Regist_Cert/01. 사업대상/02. 제주/03. 서귀포운수(3대)/제주79자7501.pdf_p1,KM90G8AHENNBD6021,True,Valid,0.0
+2026-01-21 00:27:31,Vehicle_Regist_Cert/01. 사업대상/02. 제주/03. 서귀포운수(3대)/제주79자7511.pdf_p1,KM90G8AHENNBD6024,True,Valid,0.0
+2026-01-21 00:27:32,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3140.jpg_p1,KMJTA18XPPC002966,True,Valid,0.0
+2026-01-21 00:27:32,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3143.jpg_p1,KMJTA18XPPC002969,True,Valid,0.0
+2026-01-21 00:27:33,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3146.jpg_p1,KM90G8AHENNBD6060,True,Valid,0.0
+2026-01-21 00:27:34,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/제주79아3122_전기.jpg_p1,KMJTA18XPRC004040,True,Valid,0.0
+2026-01-21 00:27:35,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/제주79아3141_전기.jpg_p1,KMJTA18XPRC004045,True,Valid,0.0
+2026-01-21 00:27:36,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3125.jpg_p1,KM90G8AHENNBD6059,True,Valid,0.0
+2026-01-21 00:27:37,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3132.jpg_p1,KMJTA18XPPC002968,True,Valid,0.0
+2026-01-21 00:27:38,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/제주79아3154_전기.jpg_p1,KMJTA18XPRC004044,True,Valid,0.0
+2026-01-21 00:27:39,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3101.jpg_p1,KMJTA18XPPC002964,True,Valid,0.0
+2026-01-21 00:27:40,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3110.jpg_p1,KMJTA18XPPC002967,True,Valid,0.0
+2026-01-21 00:27:40,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3162.jpg_p1,KMJTA18XPPC002965,True,Valid,0.0
+2026-01-21 00:27:41,Vehicle_Regist_Cert/01. 사업대상/02. 제주/02. 제주여객자동차(12대)/3163.jpg_p1,KMJTA18XPPC002970,True,Valid,0.0
+2026-01-21 00:27:43,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1270_전기_자동차등록증.pdf_p1,KMJTA18XPRC004286,True,Valid,0.0
+2026-01-21 00:27:45,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1091_전기.pdf_p1,KMJTA18XPPC002994,True,Valid,0.0
+2026-01-21 00:27:46,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1085_전기.pdf_p1,LHWCK87D8L1203130,True,Valid,0.0
+2026-01-21 00:27:47,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1034_전기_자동차등록증.pdf_p1,KMJTA18XPRC500093,True,Valid,0.0
+2026-01-21 00:27:49,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1088_전기.pdf_p1,KMJTA18XPPC002991,True,Valid,0.0
+2026-01-21 00:27:50,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1093_전기_자동차등록증.pdf_p1,KMJTA18XPRC004288,True,Valid,0.0
+2026-01-21 00:27:51,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1280_전기.pdf_p1,KM90G8AHENNBD6016,True,Valid,0.0
+2026-01-21 00:27:53,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1097_전기.pdf_p1,KMJTA18XPPC003628,True,Valid,0.0
+2026-01-21 00:27:54,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1250_전기.pdf_p1,KMJTA18XPPC003632,True,Valid,0.0
+2026-01-21 00:27:55,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1090_전기.pdf_p1,KMJTA18XPPC002993,True,Valid,0.0
+2026-01-21 00:27:57,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1287_전기.pdf_p1,KMJTA18XPPC003633,True,Valid,0.0
+2026-01-21 00:27:58,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1016_전기.pdf_p1,KMJTA18XPPC003630,True,Valid,0.0
+2026-01-21 00:27:59,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1089_전기.pdf_p1,KMJTA18XPPC002992,True,Valid,0.0
+2026-01-21 00:28:01,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1281_전기.pdf_p1,KMJTA18XPPC002995,True,Valid,0.0
+2026-01-21 00:28:02,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1271_전기_자동차등록증.pdf_p1,KMJTA18XPRC004287,True,Valid,0.0
+2026-01-21 00:28:04,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1035_전기_자동차등록증.pdf_p1,KMITA18XPRC500094,False,"Contains forbidden characters (I, O, Q)",0.0
+2026-01-21 00:28:05,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1035_전기_자동차등록증.pdf_p1,KMITA18XPRC500094,False,"Contains forbidden characters (I, O, Q)",0.0
+2026-01-21 00:28:05,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1213_전기.pdf_p1,KMJTA18XPPC003062,True,Valid,0.0
+2026-01-21 00:28:06,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1096_전기.pdf_p1,KMJTA18XPPC003631,True,Valid,0.0
+2026-01-21 00:28:07,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1096_전기.pdf_p1,KMJTA18XPPC003631,True,Valid,0.0
+2026-01-21 00:28:08,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1223_전기.pdf_p1,KMJTA18XPPC003063,True,Valid,0.0
+2026-01-21 00:28:08,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1223_전기.pdf_p1,KMJTA18XPPC003063,True,Valid,0.0
+2026-01-21 00:28:09,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1284_전기.pdf_p1,KMJTA18XPPC003060,True,Valid,0.0
+2026-01-21 00:28:09,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1284_전기.pdf_p1,KMJTA18XPPC003060,True,Valid,0.0
+2026-01-21 00:28:11,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1207_전기_자동차등록증.pdf_p1,KMJTA18XPRC500097,True,Valid,0.0
+2026-01-21 00:28:11,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1207_전기_자동차등록증.pdf_p1,KMJTA18XPRC500097,True,Valid,0.0
+2026-01-21 00:28:12,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1087_전기.pdf_p1,KM90G8AHENNBD6020,True,Valid,0.0
+2026-01-21 00:28:13,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1018_전기.pdf_p1,KMJTA18XPPC003625,True,Valid,0.0
+2026-01-21 00:28:13,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1018_전기.pdf_p1,KMJTA18XPPC003625,True,Valid,0.0
+2026-01-21 00:28:14,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1062_전기.pdf_p1,KMJTA18XPPC003626,True,Valid,0.0
+2026-01-21 00:28:15,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1062_전기.pdf_p1,KMJTA18XPPC003626,True,Valid,0.0
+2026-01-21 00:28:15,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1282_전기.pdf_p1,KM90G8AHENNBD6019,True,Valid,0.0
+2026-01-21 00:28:16,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1282_전기.pdf_p1,KM90G8AHENNBD6019,True,Valid,0.0
+2026-01-21 00:28:17,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1045_전기.pdf_p1,KM90G9AHEKNBD6043,True,Valid,0.0
+2026-01-21 00:28:17,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1045_전기.pdf_p1,KM90G9AHEKNBD6043,True,Valid,0.0
+2026-01-21 00:28:18,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1067_전기_자동차등록증.pdf_p1,KMJTA18XPRC500095,True,Valid,0.0
+2026-01-21 00:28:19,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1067_전기_자동차등록증.pdf_p1,KMJTA18XPRC500095,True,Valid,0.0
+2026-01-21 00:28:19,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1285_전기.pdf_p1,KMJTA18XPPC003061,True,Valid,0.0
+2026-01-21 00:28:20,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1285_전기.pdf_p1,KMJTA18XPPC003061,True,Valid,0.0
+2026-01-21 00:28:21,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1086_전기.pdf_p1,LHWCK87D1L1203129,True,Valid,0.0
+2026-01-21 00:28:21,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1086_전기.pdf_p1,LHWCK87D1L1203129,True,Valid,0.0
+2026-01-21 00:28:22,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1092_전기.pdf_p1,KMJTA18XPPC003058,True,Valid,0.0
+2026-01-21 00:28:23,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1092_전기.pdf_p1,KMJTA18XPPC003058,True,Valid,0.0
+2026-01-21 00:28:24,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1021_전기.pdf_p1,KMJTA18XPPC003064,True,Valid,0.0
+2026-01-21 00:28:24,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1021_전기.pdf_p1,KMJTA18XPPC003064,True,Valid,0.0
+2026-01-21 00:28:25,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1077_전기.pdf_p1,KMJTA18XPPC003627,True,Valid,0.0
+2026-01-21 00:28:25,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1077_전기.pdf_p1,KMJTA18XPPC003627,True,Valid,0.0
+2026-01-21 00:28:26,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1070_전기_자동차등록증.pdf_p1,KMJTA18XPRC500091,True,Valid,0.0
+2026-01-21 00:28:27,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1070_전기_자동차등록증.pdf_p1,KMJTA18XPRC500091,True,Valid,0.0
+2026-01-21 00:28:27,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1058_전기_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:28:28,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1058_전기_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:28:29,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1283_전기.pdf_p1,KMJTA18XPPC003059,True,Valid,0.0
+2026-01-21 00:28:29,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1283_전기.pdf_p1,KMJTA18XPPC003059,True,Valid,0.0
+2026-01-21 00:28:30,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1068_전기.pdf_p1,KMJTA18XPPC003629,True,Valid,0.0
+2026-01-21 00:28:30,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1068_전기.pdf_p1,KMJTA18XPPC003629,True,Valid,0.0
+2026-01-21 00:28:31,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1027_전기_자동차등록증.pdf_p1,KMJTA18XPRC500092,True,Valid,0.0
+2026-01-21 00:28:32,Vehicle_Regist_Cert/01. 사업대상/01. 강원/01. 춘천시민버스(37대)/강원70자1027_전기_자동차등록증.pdf_p1,KMJTA18XPRC500092,True,Valid,0.0
+2026-01-21 00:28:32,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1364_전기.pdf_p1,LA6NGHAF2NB101726,True,Valid,0.0
+2026-01-21 00:28:33,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1364_전기.pdf_p1,LA6NGHAF2NB101726,True,Valid,0.0
+2026-01-21 00:28:34,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1369_전기.pdf_p1,LA6NGHAF5PB104008,True,Valid,0.0
+2026-01-21 00:28:34,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1369_전기.pdf_p1,LA6NGHAF5PB104008,True,Valid,0.0
+2026-01-21 00:28:37,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1301_전기.pdf_p1,LA6N6HAF3PB103861,True,Valid,0.0
+2026-01-21 00:28:37,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1301_전기.pdf_p1,LA6N6HAF3PB103861,True,Valid,0.0
+2026-01-21 00:28:38,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1409_전기.pdf_p1,LA6NGHAF5PB104011,True,Valid,0.0
+2026-01-21 00:28:39,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1409_전기.pdf_p1,LA6NGHAF5PB104011,True,Valid,0.0
+2026-01-21 00:28:39,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1334_전기.pdf_p1,LA6N6HAFXNB300328,True,Valid,0.0
+2026-01-21 00:28:40,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1334_전기.pdf_p1,LA6N6HAFXNB300328,True,Valid,0.0
+2026-01-21 00:28:40,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1344_전기.pdf_p1,LA6NGHAFONB101725,False,"Contains forbidden characters (I, O, Q)",0.0
+2026-01-21 00:28:42,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1319_전기.pdf_p1,LA6NGHAF6NB300326,True,Valid,0.0
+2026-01-21 00:28:42,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1319_전기.pdf_p1,LA6NGHAF6NB300326,True,Valid,0.0
+2026-01-21 00:28:43,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1338_전기.pdf_p1,LA6N6HAF1NB300329,True,Valid,0.0
+2026-01-21 00:28:43,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1338_전기.pdf_p1,LA6N6HAF1NB300329,True,Valid,0.0
+2026-01-21 00:28:44,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1408_전기.pdf_p1,LA6N6HAF3PB104010,True,Valid,0.0
+2026-01-21 00:28:44,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1408_전기.pdf_p1,LA6N6HAF3PB104010,True,Valid,0.0
+2026-01-21 00:28:46,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1383_전기.pdf_p1,LA6N6HAF7PB104009,True,Valid,0.0
+2026-01-21 00:28:46,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1383_전기.pdf_p1,LA6N6HAF7PB104009,True,Valid,0.0
+2026-01-21 00:28:47,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1330_전기.pdf_p1,LA6N6HAF8NB300327,True,Valid,0.0
+2026-01-21 00:28:47,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1330_전기.pdf_p1,LA6N6HAF8NB300327,True,Valid,0.0
+2026-01-21 00:28:48,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1341_전기.pdf_p1,LA6NGHAF9NB101724,True,Valid,0.0
+2026-01-21 00:28:48,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1341_전기.pdf_p1,LA6NGHAF9NB101724,True,Valid,0.0
+2026-01-21 00:28:50,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1360_전기.pdf_p1,LA6NGHAF3PB104007,True,Valid,0.0
+2026-01-21 00:28:50,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1360_전기.pdf_p1,LA6NGHAF3PB104007,True,Valid,0.0
+2026-01-21 00:28:51,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1352_전기.pdf_p1,LA6N6HAF8NB300330,True,Valid,0.0
+2026-01-21 00:28:51,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1352_전기.pdf_p1,LA6N6HAF8NB300330,True,Valid,0.0
+2026-01-21 00:28:52,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1418_전기.pdf_p1,LA6N6HAFOPB104014,False,"Contains forbidden characters (I, O, Q)",0.0
+2026-01-21 00:28:52,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1418_전기.pdf_p1,LA6N6HAFOPB104014,False,"Contains forbidden characters (I, O, Q)",0.0
+2026-01-21 00:28:54,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1340_전기.pdf_p1,LA6N6HAF5NB101722,True,Valid,0.0
+2026-01-21 00:28:54,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1413_전기.pdf_p1,LA6N6HAF4NB101727,True,Valid,0.0
+2026-01-21 00:28:55,Vehicle_Regist_Cert/01. 사업대상/01. 강원/02. 동진버스(17대)/강원72자1413_전기.pdf_p1,LA6N6HAF4NB101727,True,Valid,0.0
+2026-01-21 00:28:55,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6719_경유_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:28:56,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6719_경유_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:28:56,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6347_CNG_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:28:57,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6347_CNG_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:28:57,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6731_경유_자동차등록증.pdf_p1,KMJTA18LPDC013481,True,Valid,0.0
+2026-01-21 00:28:59,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6731_경유_자동차등록증.pdf_p1,KMJTA18LPDC013481,True,Valid,0.0
+2026-01-21 00:28:59,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6378_CNG_자동차등록증.pdf_p1,BS106,False,Invalid length: 5,0.0
+2026-01-21 00:29:00,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6709_경유_자동차등록증.pdf_p1,KL5UM52PDAU005323,True,Valid,0.0
+2026-01-21 00:29:00,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6709_경유_자동차등록증.pdf_p1,KL5UM52PDAU005323,True,Valid,0.0
+2026-01-21 00:29:01,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6702_경유_자동차등록증.pdf_p1,KMJTG18LPBC010375,True,Valid,0.0
+2026-01-21 00:29:01,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6702_경유_자동차등록증.pdf_p1,KMJTG18LPBC010375,True,Valid,0.0
+2026-01-21 00:29:02,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7343_CNG_자동차등록증.pdf_p1,KMJTA18EPCC012463,True,Valid,0.0
+2026-01-21 00:29:02,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7343_CNG_자동차등록증.pdf_p1,KMJTA18EPCC012463,True,Valid,0.0
+2026-01-21 00:29:03,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6301_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005829,True,Valid,0.0
+2026-01-21 00:29:03,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6301_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005829,True,Valid,0.0
+2026-01-21 00:29:04,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6707_경유_자동차등록증.pdf_p1,KMJTA18LPDC013482,True,Valid,0.0
+2026-01-21 00:29:04,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6707_경유_자동차등록증.pdf_p1,KMJTA18LPDC013482,True,Valid,0.0
+2026-01-21 00:29:05,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6377_CNG_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:29:06,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6377_CNG_자동차등록증.pdf_p1,,False,Empty VIN,0.0
+2026-01-21 00:29:06,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6707_경유_자동차등록증_page_1.jpg_p1,KMJTA18LPDC013482,True,Valid,0.0
+2026-01-21 00:29:06,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7512_경유_자동차등록증.pdf_p1,KMJTA18LPEC016437,True,Valid,0.0
+2026-01-21 00:29:07,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7512_경유_자동차등록증.pdf_p1,KMJTA18LPEC016437,True,Valid,0.0
+2026-01-21 00:29:08,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7318_CNG_자동차등록증.pdf_p1,KL5UM52EDCU006555,True,Valid,0.0
+2026-01-21 00:29:08,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6735_경유_자동차등록증.pdf_p1,KMJTA18LPBC010374,True,Valid,0.0
+2026-01-21 00:29:08,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7318_CNG_자동차등록증.pdf_p1,KL5UM52EDCU006555,True,Valid,0.0
+2026-01-21 00:29:09,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6735_경유_자동차등록증.pdf_p1,KMJTA18LPBC010374,True,Valid,0.0
+2026-01-21 00:29:09,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7344_CNG_자동차등록증.pdf_p1,KMJTA18EPCC012464,True,Valid,0.0
+2026-01-21 00:29:10,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7344_CNG_자동차등록증.pdf_p1,KMJTA18EPCC012464,True,Valid,0.0
+2026-01-21 00:29:10,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자7344_CNG_자동차등록증.pdf_p1,KMJTA18EPCC012464,True,Valid,0.0
+2026-01-21 00:29:10,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6717_경유_자동차등록증.pdf_p1,KL5UM52PDAU005322,True,Valid,0.0
+2026-01-21 00:29:11,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6717_경유_자동차등록증.pdf_p1,KL5UM52PDAU005322,True,Valid,0.0
+2026-01-21 00:29:11,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6717_경유_자동차등록증.pdf_p1,KL5UM52PDAU005322,True,Valid,0.0
+2026-01-21 00:29:12,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6323_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005830,True,Valid,0.0
+2026-01-21 00:29:12,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6323_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005830,True,Valid,0.0
+2026-01-21 00:29:13,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6323_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005830,True,Valid,0.0
+2026-01-21 00:29:13,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6376_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005827,True,Valid,0.0
+2026-01-21 00:29:13,Vehicle_Regist_Cert/02. 베이스라인/02.경북/경북70자6376_CNG_자동차등록증.pdf_p1,KL5UM52EDBU005827,True,Valid,0.0
+2026-01-21 00:29:14,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1089_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008290,True,Valid,0.0
+2026-01-21 00:29:14,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1089_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008290,True,Valid,0.0
+2026-01-21 00:29:15,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1089_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008290,True,Valid,0.0
+2026-01-21 00:29:16,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1283_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008592,True,Valid,0.0
+2026-01-21 00:29:16,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1283_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008592,True,Valid,0.0
+2026-01-21 00:29:16,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1283_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008592,True,Valid,0.0
+2026-01-21 00:29:17,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1223_CNG_자동차등록증.pdf_p1,KMJTA18EPBC009520,True,Valid,0.0
+2026-01-21 00:29:17,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1223_CNG_자동차등록증.pdf_p1,KMJTA18EPBC009520,True,Valid,0.0
+2026-01-21 00:29:18,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1223_CNG_자동차등록증.pdf_p1,KMJTA18EPBC009520,True,Valid,0.0
+2026-01-21 00:29:19,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1092_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008591,True,Valid,0.0
+2026-01-21 00:29:19,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1092_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008591,True,Valid,0.0
+2026-01-21 00:29:20,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1088_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008289,True,Valid,0.0
+2026-01-21 00:29:20,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1088_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008289,True,Valid,0.0
+2026-01-21 00:29:20,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1088_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008289,True,Valid,0.0
+2026-01-21 00:29:21,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1090_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008291,True,Valid,0.0
+2026-01-21 00:29:21,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1090_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008291,True,Valid,0.0
+2026-01-21 00:29:22,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1090_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008291,True,Valid,0.0
+2026-01-21 00:29:23,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1284_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008593,True,Valid,0.0
+2026-01-21 00:29:23,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1284_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008593,True,Valid,0.0
+2026-01-21 00:29:24,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1284_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008593,True,Valid,0.0
+2026-01-21 00:29:24,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1281_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008292,True,Valid,0.0
+2026-01-21 00:29:24,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1281_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008292,True,Valid,0.0
+2026-01-21 00:29:26,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1285_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008594,True,Valid,0.0
+2026-01-21 00:29:26,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1285_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008594,True,Valid,0.0
+2026-01-21 00:29:26,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1091_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008590,True,Valid,0.0
+2026-01-21 00:29:27,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1091_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008590,True,Valid,0.0
+2026-01-21 00:29:27,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1091_CNG_자동차등록증.pdf_p1,KMJTA18EPBC008590,True,Valid,0.0
+2026-01-21 00:29:28,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1213_CNG_자동차등록증.pdf_p1,KMJTA18EPBC009517,True,Valid,0.0
+2026-01-21 00:29:29,Vehicle_Regist_Cert/02. 베이스라인/01.강원/강원70자1213_CNG_자동차등록증.pdf_p1,KMJTA18EPBC009517,True,Valid,0.0
