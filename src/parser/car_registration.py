@@ -563,12 +563,37 @@ class CarRegistrationParser:
         return final_result
 
     def verify_document_type(self, text):
+        """
+        Verify if text contains vehicle registration certificate keywords.
+        Handles PaddleOCR output where spaces may be inserted between characters.
+        """
         if not text:
             return False
-        keywords = [r'\uc790\ub3d9\ucc28\ub4f1\ub85d\uc99d', r'\ucc28\ub300\ubc88\ud638']
+
+        # Remove all spaces/whitespace for matching
+        clean_text = re.sub(r'\s+', '', text)
+
+        # Keywords: 자동차등록증, 차대번호
+        keywords = [
+            r'\uc790\ub3d9\ucc28\ub4f1\ub85d\uc99d',  # 자동차등록증
+            r'\ucc28\ub300\ubc88\ud638',               # 차대번호
+        ]
+
         for keyword in keywords:
-            if re.search(keyword, text):
+            if re.search(keyword, clean_text):
                 return True
+
+        # Also check with flexible spacing patterns (for original text)
+        # 자동차등록증 with optional spaces: 자\s*동\s*차\s*등\s*록\s*증
+        flexible_patterns = [
+            r'\uc790\s*\ub3d9\s*\ucc28\s*\ub4f1\s*\ub85d\s*\uc99d',  # 자 동 차 등 록 증
+            r'\ucc28\s*\ub300\s*\ubc88\s*\ud638',                     # 차 대 번 호
+        ]
+
+        for pattern in flexible_patterns:
+            if re.search(pattern, text):
+                return True
+
         return False
 
     def _calculate_google_confidence(self, value, annotation):

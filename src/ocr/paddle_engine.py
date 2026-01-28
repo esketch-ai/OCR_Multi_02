@@ -1,10 +1,20 @@
+# -*- coding: utf-8 -*-
+"""
+PaddleOCR engine with singleton pattern and memory optimization.
+Updated for PaddleOCR 3.3+ API.
+"""
 import logging
 import gc
+import warnings
+
+# Suppress warnings
+warnings.filterwarnings('ignore')
 
 
 class LocalPaddleEngine:
     """
     PaddleOCR engine with singleton pattern and memory optimization.
+    Supports Korean and English text recognition.
     """
     _instance = None
     _initialized = False
@@ -21,6 +31,7 @@ class LocalPaddleEngine:
 
         self.ocr = None
         self.enabled = enable_paddle
+        self.lang = lang
 
         if not enable_paddle:
             logging.info("PaddleOCR disabled by configuration")
@@ -28,19 +39,22 @@ class LocalPaddleEngine:
             return
 
         try:
-            logging.info("Initializing PaddleOCR (Local)...")
+            logging.info(f"Initializing PaddleOCR 3.3+ (lang={lang})...")
             from paddleocr import PaddleOCR
 
-            # Optimized settings for memory efficiency
+            # PaddleOCR 3.3+ configuration optimized for speed
+            # Mobile detection + Korean recognition for best speed/accuracy balance
             self.ocr = PaddleOCR(
-                use_angle_cls=False,  # Disable angle classification
                 lang=lang,
-                use_gpu=False,        # Force CPU to avoid GPU memory issues
-                enable_mkldnn=False,  # Disable MKL-DNN to save memory
-                show_log=False,       # Disable verbose logging
-                det_db_unclip_ratio=1.5,  # Reduce detection sensitivity
+                use_doc_orientation_classify=False,  # Skip orientation detection
+                use_doc_unwarping=False,             # Skip document unwarping
+                use_textline_orientation=False,      # Skip textline orientation
+                text_detection_model_name='PP-OCRv5_mobile_det',  # Mobile detection (4x faster)
+                text_det_limit_side_len=1280,        # Limit image size for speed
+                text_det_limit_type='max',
             )
-            logging.info("PaddleOCR Initialized successfully.")
+            logging.info("PaddleOCR initialized successfully (optimized for speed).")
+
         except ImportError:
             logging.warning("PaddleOCR not installed. Disabling Paddle engine.")
             self.ocr = None
@@ -54,42 +68,85 @@ class LocalPaddleEngine:
 
     def detect_text(self, image_path):
         """
+        Detect text in an image using PaddleOCR 3.3+.
+
         Returns:
-            list of [ [ [x1,y1], [x2,y2], ... ], (text, confidence) ]
+            dict: {
+                'text': str (full combined text),
+                'lines': list of (text, confidence) tuples,
+                'avg_confidence': float
+            }
+        """
+        if not self.enabled or not self.ocr:
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+        try:
+            # PaddleOCR 3.3+ uses predict method
+            result = self.ocr.predict(image_path)
+
+            if not result or len(result) == 0:
+                return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+            # Extract data from OCRResult object
+            ocr_result = result[0]
+            res = ocr_result.json['res']
+
+            texts = res.get('rec_texts', [])
+            scores = res.get('rec_scores', [])
+
+            if not texts:
+                return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+            # Combine texts
+            full_text = '\n'.join(texts)
+
+            # Create lines with confidence
+            lines = list(zip(texts, scores))
+
+            # Calculate average confidence
+            avg_conf = sum(scores) / len(scores) if scores else 0.0
+
+            return {
+                'text': full_text,
+                'lines': lines,
+                'avg_confidence': avg_conf
+            }
+
+        except Exception as e:
+            logging.error(f"PaddleOCR detection failed: {e}")
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+    def detect_text_raw(self, image_path):
+        """
+        Returns raw PaddleOCR result for advanced processing.
+        Compatible with older code expecting list of [box, (text, score)].
         """
         if not self.enabled or not self.ocr:
             return []
 
         try:
-            # Try newer predict() method first (PaddleOCR 2.7+)
-            if hasattr(self.ocr, 'predict'):
-                result = self.ocr.predict(image_path)
-            else:
-                # Fallback to deprecated ocr() method
-                result = self.ocr.ocr(image_path, cls=False)
+            result = self.ocr.predict(image_path)
 
-            if not result or result[0] is None:
+            if not result or len(result) == 0:
                 return []
 
-            return result[0]
-        except TypeError as e:
-            # Handle cls argument error - try without it
-            if 'cls' in str(e):
-                try:
-                    if hasattr(self.ocr, 'predict'):
-                        result = self.ocr.predict(image_path)
-                    else:
-                        result = self.ocr.ocr(image_path)
-                    if not result or result[0] is None:
-                        return []
-                    return result[0]
-                except Exception as e2:
-                    logging.error(f"PaddleOCR detection failed (retry): {e2}")
-                    return []
-            logging.error(f"PaddleOCR detection failed: {e}")
-            return []
+            ocr_result = result[0]
+            res = ocr_result.json['res']
+
+            texts = res.get('rec_texts', [])
+            scores = res.get('rec_scores', [])
+            boxes = res.get('rec_polys', [])
+
+            # Convert to old format: [[box], (text, score)]
+            raw_result = []
+            for i, (text, score) in enumerate(zip(texts, scores)):
+                box = boxes[i] if i < len(boxes) else [[0, 0], [0, 0], [0, 0], [0, 0]]
+                raw_result.append([box, (text, score)])
+
+            return raw_result
+
         except Exception as e:
-            logging.error(f"PaddleOCR detection failed: {e}")
+            logging.error(f"PaddleOCR raw detection failed: {e}")
             return []
 
     @classmethod
