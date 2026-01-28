@@ -84,7 +84,9 @@ class ImagePreprocessor:
 
             temp_image_paths = []
             base_name = os.path.splitext(os.path.basename(pdf_path))[0]
-            dir_name = os.path.dirname(pdf_path)
+            # Use system temp directory instead of source directory
+            import tempfile
+            dir_name = tempfile.gettempdir()
 
             # Save each page as a temp image with resizing
             for i, page in enumerate(pages):
@@ -131,10 +133,11 @@ class ImagePreprocessor:
             with Image.open(image_path) as img:
                 width, height = img.size
                 if width > self.max_size or height > self.max_size:
-                    # Need to resize - create temp file
+                    # Need to resize - create temp file in system temp directory
                     resized = self._resize_image_if_needed(img.copy())
                     base_name = os.path.splitext(os.path.basename(image_path))[0]
-                    dir_name = os.path.dirname(image_path)
+                    import tempfile
+                    dir_name = tempfile.gettempdir()
                     temp_path = os.path.join(dir_name, f"{base_name}_resized.jpg")
                     resized.save(temp_path, 'JPEG', quality=self.JPEG_QUALITY)
                     resized.close()
