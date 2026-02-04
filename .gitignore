@@ -1,3 +1,35 @@
-dropbox_processing.log
-ocr_process.log
-service_account.json.DS_Store
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project specific
+service_account.json
+*.log
+
+# Data directories (large files)
+Data/
+output/
+failed/
+processed/
+
+# Temp files
+*.txt
+!requirements.txt
+!README.txt
