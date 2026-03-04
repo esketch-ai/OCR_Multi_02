@@ -39,19 +39,16 @@ class LocalPaddleEngine:
             return
 
         try:
-            logging.info(f"Initializing PaddleOCR 3.3+ (lang={lang})...")
+            logging.info(f"Initializing PaddleOCR 2.x (lang={lang})...")
             from paddleocr import PaddleOCR
 
-            # PaddleOCR 3.3+ configuration optimized for speed
-            # Mobile detection + Korean recognition for best speed/accuracy balance
+            # PaddleOCR 2.x configuration optimized for speed
             self.ocr = PaddleOCR(
                 lang=lang,
-                use_doc_orientation_classify=False,  # Skip orientation detection
-                use_doc_unwarping=False,             # Skip document unwarping
-                use_textline_orientation=False,      # Skip textline orientation
-                text_detection_model_name='PP-OCRv5_mobile_det',  # Mobile detection (4x faster)
-                text_det_limit_side_len=1280,        # Limit image size for speed
-                text_det_limit_type='max',
+                use_angle_cls=False,  # Skip angle classification
+                use_gpu=False,        # Use CPU
+                det_limit_side_len=1280,  # Limit image size for speed
+                det_limit_type='max',
             )
             logging.info("PaddleOCR initialized successfully (optimized for speed).")
 
@@ -68,7 +65,7 @@ class LocalPaddleEngine:
 
     def detect_text(self, image_path):
         """
-        Detect text in an image using PaddleOCR 3.3+.
+        Detect text in an image using PaddleOCR 2.x.
 
         Returns:
             dict: {
@@ -81,18 +78,20 @@ class LocalPaddleEngine:
             return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
         try:
-            # PaddleOCR 3.3+ uses predict method
-            result = self.ocr.predict(image_path)
+            # PaddleOCR 2.x uses ocr method
+            result = self.ocr.ocr(image_path, cls=False)
 
-            if not result or len(result) == 0:
+            if not result or not result[0]:
                 return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
-            # Extract data from OCRResult object
-            ocr_result = result[0]
-            res = ocr_result.json['res']
-
-            texts = res.get('rec_texts', [])
-            scores = res.get('rec_scores', [])
+            # Extract texts and scores from result
+            # Format: [[[box], (text, score)], ...]
+            texts = []
+            scores = []
+            for line in result[0]:
+                text, score = line[1]
+                texts.append(text)
+                scores.append(score)
 
             if not texts:
                 return {'text': '', 'lines': [], 'avg_confidence': 0.0}
@@ -125,25 +124,14 @@ class LocalPaddleEngine:
             return []
 
         try:
-            result = self.ocr.predict(image_path)
+            result = self.ocr.ocr(image_path, cls=False)
 
-            if not result or len(result) == 0:
+            if not result or not result[0]:
                 return []
 
-            ocr_result = result[0]
-            res = ocr_result.json['res']
-
-            texts = res.get('rec_texts', [])
-            scores = res.get('rec_scores', [])
-            boxes = res.get('rec_polys', [])
-
-            # Convert to old format: [[box], (text, score)]
-            raw_result = []
-            for i, (text, score) in enumerate(zip(texts, scores)):
-                box = boxes[i] if i < len(boxes) else [[0, 0], [0, 0], [0, 0], [0, 0]]
-                raw_result.append([box, (text, score)])
-
-            return raw_result
+            # PaddleOCR 2.x returns: [[[box], (text, score)], ...]
+            # Already in the expected format
+            return result[0]
 
         except Exception as e:
             logging.error(f"PaddleOCR raw detection failed: {e}")
