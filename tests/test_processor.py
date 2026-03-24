@@ -7,11 +7,9 @@ from src.processor import process_single_file, process_batch, results_to_rows
 class TestProcessSingleFile(unittest.TestCase):
 
     @patch('src.processor.get_ocr_engine')
-    @patch('src.processor.ImagePreprocessor')
-    def test_returns_dict_with_all_fields(self, mock_preprocessor_cls, mock_get_engine):
-        mock_prep = MagicMock()
-        mock_prep.load_image.return_value = ['/tmp/fake_image.jpg']
-        mock_preprocessor_cls.return_value = mock_prep
+    @patch('src.processor._preprocessor')
+    def test_returns_dict_with_all_fields(self, mock_preprocessor, mock_get_engine):
+        mock_preprocessor.load_image.return_value = ['/tmp/fake_image.jpg']
 
         mock_engine = MagicMock()
         mock_engine.detect_text.return_value = {
@@ -27,11 +25,9 @@ class TestProcessSingleFile(unittest.TestCase):
         self.assertIn('vin', result['data'])
 
     @patch('src.processor.get_ocr_engine')
-    @patch('src.processor.ImagePreprocessor')
-    def test_returns_error_on_non_registration(self, mock_preprocessor_cls, mock_get_engine):
-        mock_prep = MagicMock()
-        mock_prep.load_image.return_value = ['/tmp/fake_image.jpg']
-        mock_preprocessor_cls.return_value = mock_prep
+    @patch('src.processor._preprocessor')
+    def test_returns_error_on_non_registration(self, mock_preprocessor, mock_get_engine):
+        mock_preprocessor.load_image.return_value = ['/tmp/fake_image.jpg']
 
         mock_engine = MagicMock()
         mock_engine.detect_text.return_value = {
