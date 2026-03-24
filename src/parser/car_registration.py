@@ -93,6 +93,21 @@ class CarRegistrationParser:
             # 9. Vehicle Specs (Specs Management No)
             # Label: 제원관리번호 (\uc81c\uc6d0\uad00\ub9ac\ubc88\ud638)
             'vehicle_specs': r'\uc81c\uc6d0\uad00\ub9ac\ubc88\ud638.*?([A-Z0-9-]+)',
+
+            # 10. Length (길이) - value may be on next line
+            'length_mm': r'\uae38\s*\uc774.{0,30}?(\d[\d,]{3,6})\s*(?:mm|\u339c)?',
+
+            # 11. Width (너비) - value may be on next line
+            'width_mm': r'\ub108\s*\ube44.{0,30}?(\d[\d,]{3,5})\s*(?:mm|\u339c)?',
+
+            # 12. Height (높이) - value may be on next line
+            'height_mm': r'\ub192\s*\uc774.{0,30}?(\d[\d,]{3,5})\s*(?:mm|\u339c)?',
+
+            # 13. Total Weight (총중량) - value may be on next line
+            'total_weight_kg': r'\ucd1d\s*\uc911?\s*\ub7c9.{0,30}?(\d[\d,]{3,6})\s*(?:kg|\u338f)?',
+
+            # 14. Passenger Capacity (승차정원) - value may be on next line
+            'passenger_capacity': r'\uc2b9\ucc28\uc815\uc6d0.{0,30}?(\d{1,3})\s*(?:\uba85|\uc778)?',
         }
 
         # Additional VIN patterns for fallback (ordered by priority)
@@ -165,6 +180,32 @@ class CarRegistrationParser:
             normalized = self._normalize_vehicle_no(result['vehicle_no'])
             if normalized:
                 result['vehicle_no'] = normalized
+
+        return result
+
+    def parse_single(self, ocr_text, filename=None):
+        """
+        Parse OCR text from a single engine and return complete result.
+        Replaces parse_hybrid() for PaddleOCR-only mode.
+        """
+        result = self.parse(ocr_text) if ocr_text else {}
+
+        # Fallback: extract vehicle_no from filename if OCR failed
+        ocr_vehicle_no = result.get('vehicle_no')
+        if filename and (not ocr_vehicle_no or not self._is_valid_vehicle_no(ocr_vehicle_no)):
+            filename_vehicle_no = self._extract_vehicle_no_from_filename(filename)
+            if filename_vehicle_no:
+                logging.info(f"Vehicle No from filename: {filename_vehicle_no} (OCR was: '{ocr_vehicle_no}')")
+                result['vehicle_no'] = filename_vehicle_no
+
+        # Determine fuel type
+        fuel_type = self._determine_fuel_type(
+            filename=filename,
+            ocr_text=ocr_text,
+            model_name=result.get('model_name'),
+            engine_type=result.get('engine_type'),
+        )
+        result['fuel_type'] = fuel_type
 
         return result
 

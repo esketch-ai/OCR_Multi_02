@@ -59,5 +59,27 @@ class TestCarRegistrationParser(unittest.TestCase):
         result = self.parser.parse(self.decoded_text)
         self.assertEqual(result['vehicle_specs'], '123-456-789')
 
+    def test_parse_single_returns_fuel_type(self):
+        """parse_single should determine fuel type from filename."""
+        result = self.parser.parse_single(self.decoded_text, filename="강원70자1016_전기.pdf")
+        self.assertEqual(result['fuel_type'], 'Electric')
+
+    def test_parse_single_returns_all_fields(self):
+        """parse_single should return all 13 output fields."""
+        required = [
+            'vehicle_no', 'owner_name', 'vin', 'model_name', 'model_year',
+            'registration_date', 'vehicle_type', 'length_mm', 'width_mm',
+            'height_mm', 'total_weight_kg', 'passenger_capacity', 'fuel_type',
+        ]
+        result = self.parser.parse_single(self.decoded_text, filename="test.pdf")
+        for field in required:
+            self.assertIn(field, result, f"Missing field: {field}")
+
+    def test_parse_single_vehicle_no_from_filename(self):
+        """parse_single should extract vehicle_no from filename as fallback."""
+        text = "자동차등록증\n차대번호 : KL1T1234567890123"
+        result = self.parser.parse_single(text, filename="경북70자6310.pdf")
+        self.assertEqual(result['vehicle_no'], '경북70자6310')
+
 if __name__ == '__main__':
     unittest.main()
