@@ -32,4 +32,5 @@ processed/
 # Temp files
 *.txt
 !requirements.txt
+!packages.txt
 !README.txt
