@@ -1,0 +1,130 @@
+# -*- coding: utf-8 -*-
+"""
+Gradio web app for Korean Vehicle Registration Certificate OCR.
+Deployed on HuggingFace Spaces.
+"""
+import os
+import logging
+import gradio as gr
+import pandas as pd
+from datetime import datetime
+
+from src.processor import process_batch, results_to_rows
+from src.storage.excel_writer import ExcelWriter
+from src.config import Config
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Excel column headers
+HEADERS = [
+    '차량번호', '업체명', '차대번호', '차명', '연식',
+    '차량등록일', '차종', '길이(mm)', '너비(mm)', '높이(mm)',
+    '총중량(kg)', '승차정원', '연료',
+]
+
+SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.pdf')
+
+
+def run_ocr(files, progress=gr.Progress()):
+    """
+    Main processing function called by Gradio.
+
+    Args:
+        files: List of uploaded file paths from gr.File
+        progress: Gradio progress tracker
+
+    Returns:
+        Tuple of (DataFrame for preview, Excel file path for download, summary text)
+    """
+    if not files:
+        return pd.DataFrame(), None, "파일을 업로드해주세요."
+
+    # Build file list
+    file_list = []
+    for f in files:
+        file_path = f if isinstance(f, str) else f.name
+        filename = os.path.basename(file_path)
+        if filename.lower().endswith(SUPPORTED_EXTENSIONS):
+            file_list.append((file_path, filename))
+
+    if not file_list:
+        return pd.DataFrame(), None, "지원되는 파일이 없습니다. (JPG, PNG, PDF)"
+
+    total = len(file_list)
+    logger.info(f"Processing {total} files...")
+
+    # Process with progress callback
+    def progress_cb(current, total_count):
+        progress(current / total_count, desc=f"{current}/{total_count} 처리 중...")
+
+    results = process_batch(file_list, progress_callback=progress_cb)
+
+    # Build summary
+    success = sum(1 for r in results if r['status'] == 'success')
+    skipped = sum(1 for r in results if r['status'] == 'skipped')
+    errors = sum(1 for r in results if r['status'] == 'error')
+    summary = f"처리 완료: {total}개 파일 중 {success}개 성공"
+    if skipped > 0:
+        summary += f", {skipped}개 건너뜀 (자동차등록증 아님)"
+    if errors > 0:
+        summary += f", {errors}개 실패"
+
+    # Convert to rows
+    rows = results_to_rows(results)
+
+    if not rows:
+        return pd.DataFrame(columns=HEADERS), None, summary + "\n인식된 자동차등록증이 없습니다."
+
+    # Create DataFrame for preview
+    df = pd.DataFrame(rows, columns=HEADERS)
+
+    # Write Excel file
+    Config.ensure_dirs()
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    excel_path = os.path.join(Config.OUTPUT_DIR, f'OCR_결과_{timestamp}.xlsx')
+    writer = ExcelWriter(excel_path)
+    for row in rows:
+        writer.append_row(row)
+    writer.close()
+
+    logger.info(f"Results saved to: {excel_path}")
+
+    return df, excel_path, summary
+
+
+# Build Gradio UI
+with gr.Blocks(
+    title="자동차등록증 OCR",
+    theme=gr.themes.Soft(),
+) as demo:
+    gr.Markdown("# 자동차등록증 OCR 시스템")
+    gr.Markdown("자동차등록증 이미지 또는 PDF를 업로드하면 OCR로 정보를 추출하여 엑셀 파일로 저장합니다.")
+
+    with gr.Row():
+        file_input = gr.File(
+            label="파일 업로드 (JPG, PNG, PDF)",
+            file_count="multiple",
+            file_types=[".jpg", ".jpeg", ".png", ".pdf"],
+        )
+
+    run_btn = gr.Button("OCR 처리 시작", variant="primary", size="lg")
+
+    summary_text = gr.Textbox(label="처리 결과", interactive=False)
+
+    result_table = gr.Dataframe(
+        label="결과 미리보기",
+        headers=HEADERS,
+        interactive=False,
+    )
+
+    excel_download = gr.File(label="엑셀 다운로드")
+
+    run_btn.click(
+        fn=run_ocr,
+        inputs=[file_input],
+        outputs=[result_table, excel_download, summary_text],
+    )
+
+if __name__ == "__main__":
+    demo.launch()
