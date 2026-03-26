@@ -5,6 +5,7 @@ Orchestrates: image preprocessing -> PaddleOCR -> parsing -> validation -> resul
 """
 import gc
 import logging
+import traceback
 from src.ocr.paddle_engine import LocalPaddleEngine
 from src.ocr.preprocessor import ImagePreprocessor
 from src.parser.car_registration import CarRegistrationParser
@@ -82,7 +83,7 @@ def process_single_file(file_path, filename):
                 ImagePreprocessor.cleanup_temp_files(image_paths, file_path)
 
     except Exception as e:
-        logger.error(f"Error processing {filename}: {e}")
+        logger.error(f"Error processing {filename}: {e}\n{traceback.format_exc()}")
         return {'status': 'error', 'filename': filename, 'data': {}, 'message': str(e)}
 
 

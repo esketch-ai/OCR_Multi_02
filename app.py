@@ -70,11 +70,16 @@ def run_ocr(files, progress=gr.Progress()):
     if errors > 0:
         summary += f", {errors}개 실패"
 
+    # Add error/skip details to summary
+    for r in results:
+        if r['status'] in ('error', 'skipped'):
+            summary += f"\n  - {r['filename']}: {r.get('message', 'unknown')}"
+
     # Convert to rows
     rows = results_to_rows(results)
 
     if not rows:
-        return pd.DataFrame(columns=HEADERS), None, summary + "\n인식된 자동차등록증이 없습니다."
+        return pd.DataFrame(columns=HEADERS), None, summary + "\n\n인식된 자동차등록증이 없습니다."
 
     # Create DataFrame for preview
     df = pd.DataFrame(rows, columns=HEADERS)
