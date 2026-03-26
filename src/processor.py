@@ -52,8 +52,10 @@ def process_single_file(file_path, filename):
 
         try:
             # 2. Run PaddleOCR
+            logger.info(f"Running OCR on: {image_path}")
             ocr_result = engine.detect_text(image_path)
             ocr_text = ocr_result.get('text', '')
+            logger.info(f"OCR text length: {len(ocr_text)}, preview: {ocr_text[:100] if ocr_text else 'EMPTY'}")
 
             if not ocr_text:
                 return {'status': 'error', 'filename': filename, 'data': {}, 'message': 'No text detected'}

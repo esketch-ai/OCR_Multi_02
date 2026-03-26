@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 PaddleOCR engine with singleton pattern and memory optimization.
-Updated for PaddleOCR 3.3+ API.
+Compatible with both PaddleOCR 2.x and 3.x APIs.
 """
 import logging
 import gc
@@ -15,6 +15,7 @@ class LocalPaddleEngine:
     """
     PaddleOCR engine with singleton pattern and memory optimization.
     Supports Korean and English text recognition.
+    Auto-detects PaddleOCR version and uses appropriate API.
     """
     _instance = None
     _initialized = False
@@ -32,6 +33,7 @@ class LocalPaddleEngine:
         self.ocr = None
         self.enabled = enable_paddle
         self.lang = lang
+        self._api_version = None  # '2.x' or '3.x'
 
         if not enable_paddle:
             logging.info("PaddleOCR disabled by configuration")
@@ -39,18 +41,35 @@ class LocalPaddleEngine:
             return
 
         try:
-            logging.info(f"Initializing PaddleOCR 2.x (lang={lang})...")
             from paddleocr import PaddleOCR
+            import paddleocr
+            version = getattr(paddleocr, '__version__', '2.0.0')
+            major_version = int(version.split('.')[0])
 
-            # PaddleOCR 2.x configuration optimized for speed
-            self.ocr = PaddleOCR(
-                lang=lang,
-                use_angle_cls=False,  # Skip angle classification
-                use_gpu=False,        # Use CPU
-                det_limit_side_len=1280,  # Limit image size for speed
-                det_limit_type='max',
-            )
-            logging.info("PaddleOCR initialized successfully (optimized for speed).")
+            if major_version >= 3:
+                self._api_version = '3.x'
+                logging.info(f"Initializing PaddleOCR {version} (3.x API, lang={lang})...")
+                self.ocr = PaddleOCR(
+                    lang=lang,
+                    use_doc_orientation_classify=False,
+                    use_doc_unwarping=False,
+                    use_textline_orientation=False,
+                    text_detection_model_name='PP-OCRv5_mobile_det',
+                    text_det_limit_side_len=1280,
+                    text_det_limit_type='max',
+                )
+            else:
+                self._api_version = '2.x'
+                logging.info(f"Initializing PaddleOCR {version} (2.x API, lang={lang})...")
+                self.ocr = PaddleOCR(
+                    lang=lang,
+                    use_angle_cls=False,
+                    use_gpu=False,
+                    det_limit_side_len=1280,
+                    det_limit_type='max',
+                )
+
+            logging.info(f"PaddleOCR initialized successfully (API: {self._api_version}).")
 
         except ImportError:
             logging.warning("PaddleOCR not installed. Disabling Paddle engine.")
@@ -65,7 +84,8 @@ class LocalPaddleEngine:
 
     def detect_text(self, image_path):
         """
-        Detect text in an image using PaddleOCR 2.x.
+        Detect text in an image using PaddleOCR.
+        Auto-selects API based on installed version.
 
         Returns:
             dict: {
@@ -78,64 +98,58 @@ class LocalPaddleEngine:
             return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
         try:
-            # PaddleOCR 2.x uses ocr method
-            result = self.ocr.ocr(image_path, cls=False)
-
-            if not result or not result[0]:
-                return {'text': '', 'lines': [], 'avg_confidence': 0.0}
-
-            # Extract texts and scores from result
-            # Format: [[[box], (text, score)], ...]
-            texts = []
-            scores = []
-            for line in result[0]:
-                text, score = line[1]
-                texts.append(text)
-                scores.append(score)
-
-            if not texts:
-                return {'text': '', 'lines': [], 'avg_confidence': 0.0}
-
-            # Combine texts
-            full_text = '\n'.join(texts)
-
-            # Create lines with confidence
-            lines = list(zip(texts, scores))
-
-            # Calculate average confidence
-            avg_conf = sum(scores) / len(scores) if scores else 0.0
-
-            return {
-                'text': full_text,
-                'lines': lines,
-                'avg_confidence': avg_conf
-            }
-
+            if self._api_version == '3.x':
+                return self._detect_text_v3(image_path)
+            else:
+                return self._detect_text_v2(image_path)
         except Exception as e:
             logging.error(f"PaddleOCR detection failed: {e}")
             return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
-    def detect_text_raw(self, image_path):
-        """
-        Returns raw PaddleOCR result for advanced processing.
-        Compatible with older code expecting list of [box, (text, score)].
-        """
-        if not self.enabled or not self.ocr:
-            return []
+    def _detect_text_v3(self, image_path):
+        """PaddleOCR 3.x API using predict()."""
+        result = self.ocr.predict(image_path)
 
-        try:
-            result = self.ocr.ocr(image_path, cls=False)
+        if not result or len(result) == 0:
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
-            if not result or not result[0]:
-                return []
+        ocr_result = result[0]
+        res = ocr_result.json['res']
 
-            # PaddleOCR 2.x returns: [[[box], (text, score)], ...]
-            # Already in the expected format
-            return result[0]
+        texts = res.get('rec_texts', [])
+        scores = res.get('rec_scores', [])
 
-        except Exception as e:
-            logging.error(f"PaddleOCR raw detection failed: {e}")
-            return []
+        if not texts:
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+        full_text = '\n'.join(texts)
+        lines = list(zip(texts, scores))
+        avg_conf = sum(scores) / len(scores) if scores else 0.0
+
+        return {'text': full_text, 'lines': lines, 'avg_confidence': avg_conf}
+
+    def _detect_text_v2(self, image_path):
+        """PaddleOCR 2.x API using ocr()."""
+        result = self.ocr.ocr(image_path, cls=False)
+
+        if not result or not result[0]:
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+        texts = []
+        scores = []
+        for line in result[0]:
+            text, score = line[1]
+            texts.append(text)
+            scores.append(score)
+
+        if not texts:
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+
+        full_text = '\n'.join(texts)
+        lines = list(zip(texts, scores))
+        avg_conf = sum(scores) / len(scores) if scores else 0.0
+
+        return {'text': full_text, 'lines': lines, 'avg_confidence': avg_conf}
 
     @classmethod
     def cleanup(cls):
