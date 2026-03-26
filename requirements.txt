@@ -1,5 +1,5 @@
-paddlepaddle==3.0.0
-paddleocr==3.0.0
+paddlepaddle>=2.6.0,<3.0
+paddleocr>=2.7.0,<3.0
 gradio>=4.0
 openpyxl==3.1.2
 Pillow>=10.0
