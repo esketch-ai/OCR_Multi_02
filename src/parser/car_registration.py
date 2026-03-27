@@ -49,7 +49,7 @@ class CarRegistrationParser:
             'vehicle_no': r'(?:\uc790\ub3d9\ucc28\ub4f1\ub85d\ubc88\ud638)[\s:]*([^\n]+?)(?=\s*(?:\u2461|\u2462|\ucc28\uc885)|\n|$)',
             'vin': r'\ucc28\ub300\ubc88\ud638[^\n]*?[\s\n:]*([A-Z0-9]{17})',
             'vehicle_type': r'\ucc28\s*\uc885[\s:]*([^\n]+?)(?=\s*(?:\u2462|\u2463|\ucc28\uba85)|\n|$)',
-            'model_name': r'(?:\ucc28\s*\uba85|Model Name)[\s:]*([^\n\t/]+?)(?=\s*(?:\u2463|\u2464|\ud615\uc2dd)|/|\n|$)',
+            'model_name': r'(?:\ucc28\s*\uba85|Model\s*Name)[\s:]*([^\n/]+)',
             'vehicle_format': r'(?:\ud615\s*\uc2dd|\ud615\uc2dd\s*\ubc0f\s*\ubaa8\ub378\uc5f0\ub3c4)(?:.|\n){0,10}?\b([A-Z0-9-]{5,})(?=\s|/|\n)',
             'model_year': r'(?:\uc5f0\s*\uc2dd|\ubaa8\ub378\uc5f0\ub3c4)(?:.|\n){0,100}?\b((?:19|20)\d{2})\b',
             'engine_type': r'\uc6d0\ub3d9\uae30\ud615\uc2dd(?:.|\n){0,50}?([A-Z0-9-]{3,})',
@@ -58,7 +58,7 @@ class CarRegistrationParser:
             'length_mm': r'\uae38\s*\uc774.{0,30}?(\d[\d,]{3,6})\s*(?:mm|\u339c)?',
             'width_mm': r'\ub108\s*\ube44.{0,30}?(\d[\d,]{3,5})\s*(?:mm|\u339c)?',
             'height_mm': r'\ub192\s*\uc774.{0,30}?(\d[\d,]{3,5})\s*(?:mm|\u339c)?',
-            'total_weight_kg': r'\ucd1d\s*\uc911?\s*\ub7c9.{0,30}?(\d[\d,]{3,6})\s*(?:kg|\u338f)?',
+            'total_weight_kg': r'\ucd1d\s*\uc911?\s*\ub7c9.{0,30}?(\d[\d,]{3,4})\s*(?:kg|\u338f)?',
             'passenger_capacity': r'\uc2b9\ucc28\uc815\uc6d0.{0,30}?(\d{1,3})\s*(?:\uba85|\uc778)?',
         }
 
@@ -121,6 +121,7 @@ class CarRegistrationParser:
         # Step 2: Label-independent fallbacks for each field
         self._fallback_vin(result, text)
         self._fallback_vehicle_no(result, text)
+        self._fallback_model_name(result, text)
         self._fallback_model_year(result, text)
         self._fallback_dimensions(result, text)
         self._fallback_passenger_capacity(result, text)
@@ -199,6 +200,52 @@ class CarRegistrationParser:
                     logging.info(f"Vehicle No via fallback: {normalized}")
                     return
 
+    def _fallback_model_name(self, result, text):
+        """Extract model name using fallback patterns.
+        Handles Korean model names like 뉴슈퍼에어로시티초저상버스."""
+        if result.get('model_name'):
+            # Clean: strip trailing whitespace/circled numbers from label match
+            name = result['model_name'].strip()
+            name = re.sub(r'[\u2460-\u2469].*', '', name).strip()
+            result['model_name'] = name if name else None
+            if result['model_name']:
+                return
+
+        # After ④ marker (차명 is field ④ on the cert)
+        patterns = [
+            r'\u2463[\s:]*([^\n]{2,})',          # After ④
+            r'(?:\ucc28\s*\uba85)[\s:]*([^\n]+)',  # 차명 label (flexible spacing)
+        ]
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                name = match.group(1).strip()
+                # Remove trailing circled numbers or format codes
+                name = re.sub(r'\s*[\u2460-\u2469].*', '', name).strip()
+                name = re.sub(r'\s*[A-Z0-9-]{5,}$', '', name).strip()
+                if len(name) >= 2:
+                    result['model_name'] = name
+                    logging.info(f"Model name via fallback: {name}")
+                    return
+
+        # Look for known Korean bus/vehicle model name patterns
+        known_models = [
+            r'((?:뉴\s*)?슈퍼\s*에어로\s*시티[^\n]*?버스)',
+            r'((?:뉴\s*)?에어로\s*시티[^\n]*?버스)',
+            r'(유니버스[^\n]*)',
+            r'(그린시티[^\n]*)',
+            r'(일렉시티[^\n]*)',
+            r'(카운티[^\n]*)',
+            r'(마이티[^\n]*)',
+        ]
+        for pattern in known_models:
+            match = re.search(pattern, text)
+            if match:
+                name = match.group(1).strip()
+                result['model_name'] = name
+                logging.info(f"Model name via known pattern: {name}")
+                return
+
     def _fallback_model_year(self, result, text):
         """Extract model year using direct pattern matching."""
         if result.get('model_year'):
@@ -257,9 +304,9 @@ class CarRegistrationParser:
                 mm_with_unit.append(v)
 
         kg_with_unit = []
-        for m in re.finditer(r'(\d[\d,]{3,6})\s*(?:kg|\u338f)', spec_text, re.IGNORECASE):
+        for m in re.finditer(r'(\d[\d,]{3,4})\s*(?:kg|\u338f)', spec_text, re.IGNORECASE):
             v = int(m.group(1).replace(',', ''))
-            if 1000 <= v <= 30000:
+            if 1000 <= v <= 99999:
                 kg_with_unit.append(v)
 
         # Collect engine displacement and power values to exclude from dimensions
@@ -454,6 +501,10 @@ class CarRegistrationParser:
                 result['total_weight_kg'] = result['height_mm']
             result['height_mm'] = None
 
+        # Weight should be max 5 digits (<=99999 kg)
+        if weight and weight > 99999:
+            result['total_weight_kg'] = None
+
         # Length should be > width and > height
         if length and width and length < width:
             result['length_mm'], result['width_mm'] = result['width_mm'], result['length_mm']
@@ -461,35 +512,41 @@ class CarRegistrationParser:
     def _fallback_passenger_capacity(self, result, text):
         """Extract passenger capacity from circled number markers or standalone patterns."""
         if result.get('passenger_capacity'):
-            return
+            # Validate existing value
+            val = int(result['passenger_capacity'])
+            if val < 1 or val > 100:
+                result['passenger_capacity'] = None
+            else:
+                return
 
-        # Look near circled markers for passenger count
-        # In registration certs, capacity is usually a 1-3 digit number followed by 명/인
-        patterns = [
-            r'\uc2b9\ucc28\uc815\uc6d0.{0,30}?(\d{1,3})\s*(?:\uba85|\uc778)?',  # 승차정원 + number
-            r'(\d{1,3})\s*(?:\uba85|\uc778)',  # number + 명/인
-        ]
+        # Pattern 1: 승차정원 label + number + 명/인
+        match = re.search(r'\uc2b9\ucc28\uc815\uc6d0.{0,30}?(\d{1,3})\s*(?:\uba85|\uc778)', text)
+        if match:
+            val = int(match.group(1))
+            if 1 <= val <= 100:
+                result['passenger_capacity'] = str(val)
+                return
 
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                val = int(match.group(1))
-                if 1 <= val <= 100:  # Reasonable passenger capacity
-                    result['passenger_capacity'] = str(val)
-                    return
+        # Pattern 2: number + 명 (but NOT preceded by digits — avoid matching "2020명")
+        for match in re.finditer(r'(?<!\d)(\d{1,3})\s*(?:\uba85|\uc778)', text):
+            val = int(match.group(1))
+            # For buses, capacity is typically 20-80; for cars 2-9
+            if 2 <= val <= 100:
+                result['passenger_capacity'] = str(val)
+                return
 
-        # Look for standalone 2-digit numbers near dimension area (common for bus capacity)
-        # Check lines near kg/mm values for a standalone number 20-80 range
+        # Pattern 3: standalone number in spec zone after weight values
         lines = text.split('\n')
-        dim_zone = False
+        weight_found = False
         for line in lines:
-            if re.search(r'\d+\s*(?:mm|kg)', line, re.IGNORECASE):
-                dim_zone = True
-            if dim_zone:
+            if re.search(r'\d+\s*(?:kg|\u338f)', line, re.IGNORECASE):
+                weight_found = True
+            if weight_found:
                 match = re.match(r'^\s*(\d{1,3})\s*$', line)
                 if match:
                     val = int(match.group(1))
-                    if 10 <= val <= 100:
+                    # Bus capacity: 20-80, car: 2-9
+                    if 2 <= val <= 100:
                         result['passenger_capacity'] = str(val)
                         return
 
@@ -576,31 +633,23 @@ class CarRegistrationParser:
         return result
 
     def _clean_owner_name(self, name):
-        """Remove company type suffixes/prefixes from owner name."""
+        """Remove company type suffixes/prefixes from owner name.
+        Handles OCR garbling like (주,추), (주,주), (쥬) etc."""
         if not name:
             return name
-        # Remove common Korean company type indicators
-        patterns = [
-            r'\(주\)',        # (주)
-            r'\(주,주\)',     # (주,주)
-            r'\(유\)',        # (유)
-            r'\(사\)',        # (사)
-            r'\(재\)',        # (재)
-            r'\(합\)',        # (합)
-            r'\(특\)',        # (특)
-            r'주식회사',      # 주식회사
-            r'유한회사',      # 유한회사
-            r'유한책임회사',  # 유한책임회사
-            r'사단법인',      # 사단법인
-            r'재단법인',      # 재단법인
-            r'합자회사',      # 합자회사
-            r'합명회사',      # 합명회사
-            r'합동회사',      # 합동회사
+        # Remove parenthesized company markers (handles OCR variants)
+        # e.g., (주), (주,추), (주,주), (쥬), (유), (사), (재), (합), (특)
+        name = re.sub(r'\([주쥬유사재합특][^)]*\)', '', name)
+        # Remove standalone text company markers
+        markers = [
+            r'주식회사', r'유한회사', r'유한책임회사',
+            r'사단법인', r'재단법인',
+            r'합자회사', r'합명회사', r'합동회사',
         ]
-        for pat in patterns:
+        for pat in markers:
             name = re.sub(pat, '', name)
-        # Clean up leftover whitespace
-        name = re.sub(r'\s+', ' ', name).strip()
+        # Clean up leftover whitespace and punctuation
+        name = re.sub(r'[,\s]+', ' ', name).strip()
         return name
 
     def _correct_vin_ocr(self, vin):
