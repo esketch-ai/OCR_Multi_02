@@ -16,7 +16,12 @@ class CarRegistrationParser:
     VIN_PREFIXES = ('KM', 'KL', 'KN', 'KP', 'LA', 'LF', 'LG', 'LJ', 'KMJ', 'KMH', 'KNA')
 
     # Fuel type mappings (Korean -> standardized)
+    # Hydrogen keywords MUST be checked before Electric (수소전기 contains 전기)
     FUEL_TYPES = {
+        '수소': 'Hydrogen',
+        '수소전기': 'Hydrogen',
+        'FCEV': 'Hydrogen',
+        '연료전지': 'Hydrogen',
         'CNG': 'CNG',
         '천연가스': 'CNG',
         '압축천연가스': 'CNG',
@@ -25,19 +30,20 @@ class CarRegistrationParser:
         'LPG': 'LPG',
         '엘피지': 'LPG',
         '액화석유가스': 'LPG',
-        '전기': 'Electric',
-        '수소': 'Hydrogen',
         '하이브리드': 'Hybrid',
+        '전기': 'Electric',
         '휘발유': 'Gasoline',
         '가솔린': 'Gasoline',
     }
 
-    # Fuel keywords for OCR text detection (ordered: specific fuels first, Electric last)
+    # Fuel keywords for OCR text detection
+    # Order matters: Hydrogen before LPG (수소전기 contains 전기),
+    # CNG before others, Electric last
     FUEL_OCR_KEYWORDS = [
+        ('Hydrogen', ['수소', 'FCEV', '연료전지', '수소전기', 'HYDROGEN', 'H2']),
         ('CNG', ['CNG', '천연가스', '압축천연가스']),
         ('Diesel', ['디젤', '경유']),
         ('LPG', ['LPG', '엘피지', '액화석유가스']),
-        ('Hydrogen', ['수소', 'FCEV', '연료전지']),
         ('Hybrid', ['하이브리드', 'HEV', 'PHEV']),
         ('Gasoline', ['휘발유', '가솔린']),
         ('Electric', ['전기', 'EV', 'ELEC']),
@@ -833,6 +839,8 @@ class CarRegistrationParser:
         # Priority 3: Engine type hints
         if engine_type:
             engine_upper = engine_type.upper()
+            if 'FCEV' in engine_upper or 'FC' in engine_upper:
+                return 'Hydrogen'
             if 'CNG' in engine_upper:
                 return 'CNG'
             if engine_upper.startswith('TED') or engine_upper.startswith('EM'):
@@ -841,6 +849,8 @@ class CarRegistrationParser:
         # Priority 4: Model name hints
         if model_name:
             model_upper = model_name.upper()
+            if '수소' in model_name or 'FCEV' in model_upper or 'HYDROGEN' in model_upper:
+                return 'Hydrogen'
             if 'ELEC' in model_upper or '전기' in model_name:
                 return 'Electric'
             if 'SMART' in model_upper and ('110' in model_upper or '120' in model_upper):
