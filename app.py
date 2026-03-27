@@ -5,6 +5,7 @@ Deployed on HuggingFace Spaces.
 """
 import os
 import logging
+import traceback
 import gradio as gr
 import pandas as pd
 from datetime import datetime
@@ -29,73 +30,86 @@ SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.pdf')
 def run_ocr(files, progress=gr.Progress()):
     """
     Main processing function called by Gradio.
-
-    Args:
-        files: List of uploaded file paths from gr.File
-        progress: Gradio progress tracker
-
-    Returns:
-        Tuple of (DataFrame for preview, Excel file path for download, summary text)
     """
-    if not files:
-        return pd.DataFrame(), None, "파일을 업로드해주세요."
+    try:
+        if not files:
+            return pd.DataFrame(), None, "파일을 업로드해주세요."
 
-    # Build file list
-    file_list = []
-    for f in files:
-        file_path = f if isinstance(f, str) else f.name
-        filename = os.path.basename(file_path)
-        if filename.lower().endswith(SUPPORTED_EXTENSIONS):
-            file_list.append((file_path, filename))
+        # Build file list - handle different Gradio file object formats
+        file_list = []
+        logger.info(f"Received {len(files)} files, type: {type(files[0]) if files else 'none'}")
 
-    if not file_list:
-        return pd.DataFrame(), None, "지원되는 파일이 없습니다. (JPG, PNG, PDF)"
+        for f in files:
+            # Gradio 5.x passes file path as string
+            # Gradio 4.x passes NamedString or UploadFile objects
+            if isinstance(f, str):
+                file_path = f
+            elif hasattr(f, 'name'):
+                file_path = f.name
+            elif hasattr(f, 'path'):
+                file_path = f.path
+            else:
+                file_path = str(f)
 
-    total = len(file_list)
-    logger.info(f"Processing {total} files...")
+            filename = os.path.basename(file_path)
+            logger.info(f"File: {filename}, path: {file_path}, exists: {os.path.exists(file_path)}")
 
-    # Process with progress callback
-    def progress_cb(current, total_count):
-        progress(current / total_count, desc=f"{current}/{total_count} 처리 중...")
+            if filename.lower().endswith(SUPPORTED_EXTENSIONS):
+                file_list.append((file_path, filename))
 
-    results = process_batch(file_list, progress_callback=progress_cb)
+        if not file_list:
+            return pd.DataFrame(), None, "지원되는 파일이 없습니다. (JPG, PNG, PDF)"
 
-    # Build summary
-    success = sum(1 for r in results if r['status'] == 'success')
-    skipped = sum(1 for r in results if r['status'] == 'skipped')
-    errors = sum(1 for r in results if r['status'] == 'error')
-    summary = f"처리 완료: {total}개 파일 중 {success}개 성공"
-    if skipped > 0:
-        summary += f", {skipped}개 건너뜀 (자동차등록증 아님)"
-    if errors > 0:
-        summary += f", {errors}개 실패"
+        total = len(file_list)
+        logger.info(f"Processing {total} files...")
 
-    # Add error/skip details to summary
-    for r in results:
-        if r['status'] in ('error', 'skipped'):
-            summary += f"\n  - {r['filename']}: {r.get('message', 'unknown')}"
+        # Process with progress callback
+        def progress_cb(current, total_count):
+            progress(current / total_count, desc=f"{current}/{total_count} 처리 중...")
 
-    # Convert to rows
-    rows = results_to_rows(results)
+        results = process_batch(file_list, progress_callback=progress_cb)
 
-    if not rows:
-        return pd.DataFrame(columns=HEADERS), None, summary + "\n\n인식된 자동차등록증이 없습니다."
+        # Build summary
+        success = sum(1 for r in results if r['status'] == 'success')
+        skipped = sum(1 for r in results if r['status'] == 'skipped')
+        errors = sum(1 for r in results if r['status'] == 'error')
+        summary = f"처리 완료: {total}개 파일 중 {success}개 성공"
+        if skipped > 0:
+            summary += f", {skipped}개 건너뜀 (자동차등록증 아님)"
+        if errors > 0:
+            summary += f", {errors}개 실패"
 
-    # Create DataFrame for preview
-    df = pd.DataFrame(rows, columns=HEADERS)
+        # Add error/skip details to summary
+        for r in results:
+            if r['status'] in ('error', 'skipped'):
+                summary += f"\n  - {r['filename']}: {r.get('message', 'unknown')}"
 
-    # Write Excel file
-    Config.ensure_dirs()
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
-    excel_path = os.path.join(Config.OUTPUT_DIR, f'OCR_결과_{timestamp}.xlsx')
-    writer = ExcelWriter(excel_path)
-    for row in rows:
-        writer.append_row(row)
-    writer.close()
+        # Convert to rows
+        rows = results_to_rows(results)
 
-    logger.info(f"Results saved to: {excel_path}")
+        if not rows:
+            return pd.DataFrame(columns=HEADERS), None, summary + "\n\n인식된 자동차등록증이 없습니다."
 
-    return df, excel_path, summary
+        # Create DataFrame for preview
+        df = pd.DataFrame(rows, columns=HEADERS)
+
+        # Write Excel file
+        Config.ensure_dirs()
+        timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        excel_path = os.path.join(Config.OUTPUT_DIR, f'OCR_결과_{timestamp}.xlsx')
+        writer = ExcelWriter(excel_path)
+        for row in rows:
+            writer.append_row(row)
+        writer.close()
+
+        logger.info(f"Results saved to: {excel_path}")
+
+        return df, excel_path, summary
+
+    except Exception as e:
+        error_msg = f"시스템 오류: {str(e)}\n\n{traceback.format_exc()}"
+        logger.error(error_msg)
+        return pd.DataFrame(), None, error_msg
 
 
 # Build Gradio UI
@@ -115,7 +129,7 @@ with gr.Blocks(
 
     run_btn = gr.Button("OCR 처리 시작", variant="primary", size="lg")
 
-    summary_text = gr.Textbox(label="처리 결과", interactive=False)
+    summary_text = gr.Textbox(label="처리 결과", interactive=False, lines=5)
 
     result_table = gr.Dataframe(
         label="결과 미리보기",
