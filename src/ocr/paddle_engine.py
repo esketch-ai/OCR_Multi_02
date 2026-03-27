@@ -107,25 +107,106 @@ class LocalPaddleEngine:
             return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
     def _detect_text_v3(self, image_path):
-        """PaddleOCR 3.x API using predict()."""
+        """PaddleOCR 3.x API using predict(). Handles multiple result formats."""
         result = self.ocr.predict(image_path)
 
-        if not result or len(result) == 0:
+        if not result:
+            logging.warning("PaddleOCR 3.x predict() returned empty result")
             return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
-        ocr_result = result[0]
-        res = ocr_result.json['res']
+        # Debug: log result structure to diagnose format issues
+        logging.info(f"PaddleOCR 3.x result type: {type(result)}, len: {len(result) if hasattr(result, '__len__') else 'N/A'}")
+        if result:
+            first = result[0]
+            logging.info(f"result[0] type: {type(first)}")
+            if hasattr(first, '__dict__'):
+                logging.info(f"result[0] attrs: {list(first.__dict__.keys())[:10]}")
+            if hasattr(first, 'json'):
+                try:
+                    logging.info(f"result[0].json keys: {list(first.json.keys()) if isinstance(first.json, dict) else type(first.json)}")
+                except Exception:
+                    pass
 
-        texts = res.get('rec_texts', [])
-        scores = res.get('rec_scores', [])
+        texts = []
+        scores = []
 
+        # Strategy 1: result[0].json['res'] with rec_texts/rec_scores (PaddleOCR 3.0-3.2)
+        try:
+            ocr_result = result[0]
+            if hasattr(ocr_result, 'json') and isinstance(ocr_result.json, dict):
+                res = ocr_result.json.get('res', {})
+                if isinstance(res, dict):
+                    t = res.get('rec_texts', [])
+                    s = res.get('rec_scores', [])
+                    if t:
+                        texts, scores = list(t), list(s)
+                        logging.info(f"Parsed with Strategy 1 (json.res): {len(texts)} lines")
+        except Exception as e:
+            logging.debug(f"Strategy 1 failed: {e}")
+
+        # Strategy 2: result[0].json['res'] is a list of dicts with 'rec_text'/'rec_score'
         if not texts:
+            try:
+                ocr_result = result[0]
+                if hasattr(ocr_result, 'json') and isinstance(ocr_result.json, dict):
+                    res = ocr_result.json.get('res', [])
+                    if isinstance(res, list):
+                        for item in res:
+                            if isinstance(item, dict):
+                                t = item.get('rec_text', item.get('text', ''))
+                                s = item.get('rec_score', item.get('score', item.get('confidence', 0.0)))
+                                if t:
+                                    texts.append(t)
+                                    scores.append(float(s))
+                        if texts:
+                            logging.info(f"Parsed with Strategy 2 (json.res list): {len(texts)} lines")
+            except Exception as e:
+                logging.debug(f"Strategy 2 failed: {e}")
+
+        # Strategy 3: result is list of (bbox, (text, confidence)) tuples (PaddleOCR 3.3+)
+        if not texts:
+            try:
+                for item in result:
+                    if isinstance(item, (list, tuple)) and len(item) >= 2:
+                        text_info = item[1]
+                        if isinstance(text_info, (list, tuple)) and len(text_info) >= 2:
+                            texts.append(str(text_info[0]))
+                            scores.append(float(text_info[1]))
+                if texts:
+                    logging.info(f"Parsed with Strategy 3 (bbox tuples): {len(texts)} lines")
+            except Exception as e:
+                logging.debug(f"Strategy 3 failed: {e}")
+
+        # Strategy 4: result is generator/iterable of result objects with 'rec' attribute
+        if not texts:
+            try:
+                for item in result:
+                    if hasattr(item, 'rec'):
+                        for rec in item.rec:
+                            t = getattr(rec, 'text', '') or (rec[0] if isinstance(rec, (list, tuple)) else '')
+                            s = getattr(rec, 'score', 0.0) or (rec[1] if isinstance(rec, (list, tuple)) and len(rec) > 1 else 0.0)
+                            if t:
+                                texts.append(str(t))
+                                scores.append(float(s))
+                if texts:
+                    logging.info(f"Parsed with Strategy 4 (rec attr): {len(texts)} lines")
+            except Exception as e:
+                logging.debug(f"Strategy 4 failed: {e}")
+
+        # Strategy 5: Fallback - try to convert result to string and extract
+        if not texts:
+            try:
+                result_str = str(result)
+                logging.warning(f"All parsing strategies failed. Raw result (first 500 chars): {result_str[:500]}")
+            except Exception:
+                logging.warning("All parsing strategies failed and could not stringify result")
             return {'text': '', 'lines': [], 'avg_confidence': 0.0}
 
         full_text = '\n'.join(texts)
         lines = list(zip(texts, scores))
         avg_conf = sum(scores) / len(scores) if scores else 0.0
 
+        logging.info(f"OCR extracted {len(texts)} text lines, avg confidence: {avg_conf:.3f}")
         return {'text': full_text, 'lines': lines, 'avg_confidence': avg_conf}
 
     def _detect_text_v2(self, image_path):
