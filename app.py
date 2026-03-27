@@ -25,6 +25,66 @@ HEADERS = [
 ]
 
 SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.pdf')
+IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png')
+
+
+def get_file_path(f):
+    """Extract file path from various Gradio file object formats."""
+    if isinstance(f, str):
+        return f
+    elif hasattr(f, 'name'):
+        return f.name
+    elif hasattr(f, 'path'):
+        return f.path
+    return str(f)
+
+
+def build_file_gallery(files):
+    """Build a list of (filepath, label) for the file selector and preview the first image."""
+    if not files:
+        return gr.update(choices=[], value=None, visible=False), None
+
+    choices = []
+    first_image = None
+    for f in files:
+        fp = get_file_path(f)
+        fname = os.path.basename(fp)
+        if fname.lower().endswith(SUPPORTED_EXTENSIONS):
+            choices.append((fname, fp))
+            if first_image is None and fname.lower().endswith(IMAGE_EXTENSIONS):
+                first_image = fp
+
+    if not choices:
+        return gr.update(choices=[], value=None, visible=False), None
+
+    return (
+        gr.update(choices=choices, value=choices[0][1], visible=True),
+        first_image,
+    )
+
+
+def preview_selected_file(file_path):
+    """Show preview for the selected file."""
+    if not file_path or not os.path.exists(file_path):
+        return None
+
+    if file_path.lower().endswith(IMAGE_EXTENSIONS):
+        return file_path
+
+    # For PDF, convert first page to image for preview
+    if file_path.lower().endswith('.pdf'):
+        try:
+            from pdf2image import convert_from_path
+            images = convert_from_path(file_path, first_page=1, last_page=1, dpi=150)
+            if images:
+                import tempfile
+                tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
+                images[0].save(tmp.name, 'PNG')
+                return tmp.name
+        except Exception as e:
+            logger.warning(f"PDF preview failed: {e}")
+
+    return None
 
 
 def run_ocr(files, progress=gr.Progress()):
@@ -35,22 +95,12 @@ def run_ocr(files, progress=gr.Progress()):
         if not files:
             return pd.DataFrame(), None, "파일을 업로드해주세요."
 
-        # Build file list - handle different Gradio file object formats
+        # Build file list
         file_list = []
         logger.info(f"Received {len(files)} files, type: {type(files[0]) if files else 'none'}")
 
         for f in files:
-            # Gradio 5.x passes file path as string
-            # Gradio 4.x passes NamedString or UploadFile objects
-            if isinstance(f, str):
-                file_path = f
-            elif hasattr(f, 'name'):
-                file_path = f.name
-            elif hasattr(f, 'path'):
-                file_path = f.path
-            else:
-                file_path = str(f)
-
+            file_path = get_file_path(f)
             filename = os.path.basename(file_path)
             logger.info(f"File: {filename}, path: {file_path}, exists: {os.path.exists(file_path)}")
 
@@ -117,15 +167,29 @@ with gr.Blocks(
     title="자동차등록증 OCR",
     theme=gr.themes.Soft(),
 ) as demo:
-    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v11</sub>")
+    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v12</sub>")
     gr.Markdown("자동차등록증 이미지 또는 PDF를 업로드하면 OCR로 정보를 추출하여 엑셀 파일로 저장합니다.")
 
     with gr.Row():
-        file_input = gr.File(
-            label="파일 업로드 (JPG, PNG, PDF)",
-            file_count="multiple",
-            file_types=[".jpg", ".jpeg", ".png", ".pdf"],
-        )
+        with gr.Column(scale=1):
+            file_input = gr.File(
+                label="파일 업로드 (JPG, PNG, PDF)",
+                file_count="multiple",
+                file_types=[".jpg", ".jpeg", ".png", ".pdf"],
+            )
+            file_selector = gr.Dropdown(
+                label="파일 선택 (미리보기)",
+                choices=[],
+                visible=False,
+                interactive=True,
+            )
+        with gr.Column(scale=1):
+            image_preview = gr.Image(
+                label="이미지 미리보기",
+                type="filepath",
+                interactive=False,
+                height=400,
+            )
 
     run_btn = gr.Button("OCR 처리 시작", variant="primary", size="lg")
 
@@ -138,6 +202,20 @@ with gr.Blocks(
     )
 
     excel_download = gr.File(label="엑셀 다운로드")
+
+    # When files are uploaded, populate the file selector and show first image
+    file_input.change(
+        fn=build_file_gallery,
+        inputs=[file_input],
+        outputs=[file_selector, image_preview],
+    )
+
+    # When a file is selected from dropdown, show its preview
+    file_selector.change(
+        fn=preview_selected_file,
+        inputs=[file_selector],
+        outputs=[image_preview],
+    )
 
     run_btn.click(
         fn=run_ocr,
