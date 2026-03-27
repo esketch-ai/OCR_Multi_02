@@ -224,27 +224,39 @@ class LocalPaddleEngine:
         return {'text': full_text, 'lines': lines, 'avg_confidence': avg_conf}
 
     def _detect_text_v2(self, image_path):
-        """PaddleOCR 2.x API using ocr()."""
+        """PaddleOCR 2.x API using ocr(). Returns text + bounding boxes."""
         result = self.ocr.ocr(image_path, cls=False)
 
         if not result or not result[0]:
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+            return {'text': '', 'lines': [], 'ocr_results': [], 'avg_confidence': 0.0}
 
         texts = []
         scores = []
+        ocr_results = []  # (text, confidence, bbox) for coordinate-based extraction
         for line in result[0]:
+            bbox_points = line[0]  # [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
             text, score = line[1]
             texts.append(text)
             scores.append(score)
 
+            # Convert 4-point bbox to (x1, y1, x2, y2) rectangle
+            xs = [p[0] for p in bbox_points]
+            ys = [p[1] for p in bbox_points]
+            bbox = (min(xs), min(ys), max(xs), max(ys))
+            ocr_results.append({
+                'text': text,
+                'confidence': score,
+                'bbox': bbox,  # (x1, y1, x2, y2)
+            })
+
         if not texts:
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+            return {'text': '', 'lines': [], 'ocr_results': [], 'avg_confidence': 0.0}
 
         full_text = '\n'.join(texts)
         lines = list(zip(texts, scores))
         avg_conf = sum(scores) / len(scores) if scores else 0.0
 
-        return {'text': full_text, 'lines': lines, 'avg_confidence': avg_conf}
+        return {'text': full_text, 'lines': lines, 'ocr_results': ocr_results, 'avg_confidence': avg_conf}
 
     @classmethod
     def cleanup(cls):

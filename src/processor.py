@@ -2,6 +2,11 @@
 """
 Core processing pipeline for vehicle registration OCR.
 Orchestrates: image preprocessing -> PaddleOCR -> parsing -> validation -> results.
+
+Enhanced with OCR_Vehicle_02 algorithms:
+- Image preprocessing (CLAHE, deskew, denoise)
+- Coordinate-based field extraction (bbox Y%/X% zones)
+- Standards-based validation (자동차관리법 규격)
 """
 import gc
 import logging
@@ -10,6 +15,9 @@ from src.ocr.paddle_engine import LocalPaddleEngine
 from src.ocr.preprocessor import ImagePreprocessor
 from src.parser.car_registration import CarRegistrationParser
 from src.validator.vin_validator import VINValidator
+from src.validator.standards import (
+    FUEL_TYPE_CORRECTIONS, DIMENSION_RANGES, UNIVERSAL_RANGES, NOISE_PATTERNS
+)
 from src.config import Config
 
 logger = logging.getLogger(__name__)
@@ -29,26 +37,145 @@ def get_ocr_engine():
     return _ocr_engine
 
 
+def _correct_fuel_type_ocr(fuel_type):
+    """Correct OCR misread fuel types using standards mapping."""
+    if not fuel_type:
+        return fuel_type
+
+    # Direct correction
+    if fuel_type in FUEL_TYPE_CORRECTIONS:
+        corrected = FUEL_TYPE_CORRECTIONS[fuel_type]
+        logger.info(f"Fuel type OCR correction: '{fuel_type}' → '{corrected}'")
+        return corrected
+
+    # Substring match
+    for wrong, correct in FUEL_TYPE_CORRECTIONS.items():
+        if wrong in fuel_type:
+            logger.info(f"Fuel type OCR correction (substring): '{fuel_type}' → '{correct}'")
+            return correct
+
+    return fuel_type
+
+
+def _validate_dimensions_by_type(parsed_data):
+    """Validate dimensions against vehicle type standards (자동차관리법)."""
+    vehicle_type = parsed_data.get('vehicle_type', '')
+
+    # Normalize vehicle type (remove spaces)
+    if vehicle_type:
+        vehicle_type_clean = vehicle_type.replace(' ', '')
+    else:
+        vehicle_type_clean = ''
+
+    # Get ranges for this vehicle type, fallback to universal
+    ranges = DIMENSION_RANGES.get(vehicle_type_clean, UNIVERSAL_RANGES)
+
+    field_map = {
+        'length_mm': 'length_mm',
+        'width_mm': 'width_mm',
+        'height_mm': 'height_mm',
+        'total_weight_kg': 'weight_kg',
+        'passenger_capacity': 'capacity',
+    }
+
+    for data_field, range_key in field_map.items():
+        value = parsed_data.get(data_field)
+        if not value or range_key not in ranges:
+            continue
+
+        try:
+            v = int(value)
+            min_val, max_val = ranges[range_key]
+            if v < min_val or v > max_val:
+                logger.info(
+                    f"Dimension out of range: {data_field}={v} "
+                    f"(allowed {min_val}-{max_val} for '{vehicle_type_clean or 'universal'}')"
+                )
+                parsed_data[data_field] = None
+        except (ValueError, TypeError):
+            pass
+
+
+def _extract_bbox_fields(ocr_results, img_height, img_width):
+    """Extract fields using coordinate-based Y%/X% zone mapping.
+
+    Zone layout from OCR_Vehicle_02 architecture:
+        Y: 12-31% → Basic info (①-⑩)
+        Y: 53-67% → Specifications table
+
+    Returns dict of extracted fields (may be partial).
+    """
+    if not ocr_results or not img_height or not img_width:
+        return {}
+
+    def in_zone(r, y_min, y_max, x_min=0, x_max=100):
+        """Check if OCR result bbox center is within percentage zone."""
+        x1, y1, x2, y2 = r['bbox']
+        cy = ((y1 + y2) / 2) / img_height * 100
+        cx = ((x1 + x2) / 2) / img_width * 100
+        return y_min <= cy <= y_max and x_min <= cx <= x_max
+
+    def best_in_zone(y_min, y_max, x_min=0, x_max=100, min_conf=0.5):
+        """Get highest-confidence text in a zone."""
+        candidates = [
+            r for r in ocr_results
+            if in_zone(r, y_min, y_max, x_min, x_max)
+            and r['confidence'] >= min_conf
+            and not _is_noise(r['text'])
+        ]
+        if not candidates:
+            return None
+        return max(candidates, key=lambda r: r['confidence'])['text']
+
+    result = {}
+
+    # Basic info zone (Y: 14-28%)
+    # ④차명 (Y: 16.5-19.5%, X: 17-42%)
+    model_name = best_in_zone(16.5, 19.5, 17, 42)
+    if model_name:
+        result['model_name'] = model_name
+
+    # ⑧소유자 (Y: 25-28.5%, X: 17-30%)
+    owner = best_in_zone(25, 28.5, 17, 35)
+    if owner:
+        result['owner_name'] = owner
+
+    # ②차종 (Y: 14-16.5%, X: 63-76%)
+    vehicle_type = best_in_zone(14, 16.5, 63, 76)
+    if vehicle_type:
+        result['vehicle_type'] = vehicle_type
+
+    return result
+
+
+def _is_noise(text):
+    """Check if text is noise (legal/warning text)."""
+    for pattern in NOISE_PATTERNS:
+        if pattern in text:
+            return True
+    return False
+
+
+def _get_image_dimensions(image_path):
+    """Get image dimensions for coordinate-based extraction."""
+    try:
+        from PIL import Image
+        with Image.open(image_path) as img:
+            return img.size  # (width, height)
+    except Exception:
+        return None, None
+
+
 def process_single_file(file_path, filename):
-    """
-    Process a single image/PDF file through the OCR pipeline.
-
-    Args:
-        file_path: Absolute path to the file
-        filename: Original filename (used for fallback extraction)
-
-    Returns:
-        dict with keys: status, filename, data, message
-    """
+    """Process a single image/PDF file through the OCR pipeline."""
     try:
         engine = get_ocr_engine()
 
-        # 1. Preprocess image/PDF
+        # 1. Preprocess image/PDF (now with CLAHE, deskew, denoise)
         image_paths = _preprocessor.load_image(file_path)
         if not image_paths:
             return {'status': 'error', 'filename': filename, 'data': {}, 'message': 'Failed to load image'}
 
-        # Process first page only (vehicle registration is single page)
         image_path = image_paths[0]
 
         try:
@@ -56,7 +183,8 @@ def process_single_file(file_path, filename):
             logger.info(f"Running OCR on: {image_path}")
             ocr_result = engine.detect_text(image_path)
             ocr_text = ocr_result.get('text', '')
-            logger.info(f"OCR text length: {len(ocr_text)}, preview: {ocr_text[:100] if ocr_text else 'EMPTY'}")
+            ocr_results = ocr_result.get('ocr_results', [])
+            logger.info(f"OCR text length: {len(ocr_text)}, bbox results: {len(ocr_results)}")
 
             if not ocr_text:
                 debug = ocr_result.get('debug', '')
@@ -66,12 +194,31 @@ def process_single_file(file_path, filename):
             # 3. Verify document type
             if not _parser.verify_document_type(ocr_text):
                 preview = ocr_text[:200].replace('\n', ' | ')
-                return {'status': 'skipped', 'filename': filename, 'data': {}, 'message': f'Not a vehicle registration certificate. OCR preview: {preview}'}
+                return {'status': 'skipped', 'filename': filename, 'data': {},
+                        'message': f'Not a vehicle registration certificate. OCR preview: {preview}'}
 
-            # 4. Parse
+            # 4. Parse (text-based)
             parsed_data = _parser.parse_single(ocr_text, filename=filename)
 
-            # 5. Validate VIN
+            # 5. Coordinate-based extraction (supplement text-based results)
+            if ocr_results:
+                img_w, img_h = _get_image_dimensions(image_path)
+                if img_w and img_h:
+                    bbox_fields = _extract_bbox_fields(ocr_results, img_h, img_w)
+                    # Only fill in fields that text-based parsing missed
+                    for field, value in bbox_fields.items():
+                        if not parsed_data.get(field):
+                            parsed_data[field] = value
+                            logger.info(f"Field '{field}' filled by bbox extraction: {value}")
+
+            # 6. Apply fuel type OCR corrections (자동차관리법)
+            if parsed_data.get('fuel_type'):
+                parsed_data['fuel_type'] = _correct_fuel_type_ocr(parsed_data['fuel_type'])
+
+            # 7. Validate dimensions against vehicle type standards
+            _validate_dimensions_by_type(parsed_data)
+
+            # 8. Validate VIN
             vin = parsed_data.get('vin')
             is_valid, validation_msg = _validator.validate(vin)
             parsed_data['vin_valid'] = is_valid
@@ -84,9 +231,8 @@ def process_single_file(file_path, filename):
             return {'status': 'success', 'filename': filename, 'data': parsed_data, 'message': 'OK'}
 
         finally:
-            # Cleanup temp files from PDF conversion
-            if filename.lower().endswith('.pdf'):
-                ImagePreprocessor.cleanup_temp_files(image_paths, file_path)
+            # Cleanup temp files
+            ImagePreprocessor.cleanup_temp_files(image_paths, file_path)
 
     except Exception as e:
         logger.error(f"Error processing {filename}: {e}\n{traceback.format_exc()}")
@@ -94,16 +240,7 @@ def process_single_file(file_path, filename):
 
 
 def process_batch(file_list, progress_callback=None):
-    """
-    Process a batch of files.
-
-    Args:
-        file_list: List of (file_path, filename) tuples
-        progress_callback: Optional callable(current, total) for progress updates
-
-    Returns:
-        List of result dicts from process_single_file
-    """
+    """Process a batch of files."""
     results = []
     total = len(file_list)
 
@@ -114,7 +251,6 @@ def process_batch(file_list, progress_callback=None):
         if progress_callback:
             progress_callback(i + 1, total)
 
-        # Memory management
         if (i + 1) % Config.GC_INTERVAL == 0:
             gc.collect()
 
@@ -122,12 +258,7 @@ def process_batch(file_list, progress_callback=None):
 
 
 def results_to_rows(results):
-    """
-    Convert processing results to rows for Excel output.
-
-    Returns:
-        List of lists, each inner list is one Excel row (13 columns)
-    """
+    """Convert processing results to rows for Excel output."""
     rows = []
     for r in results:
         if r['status'] != 'success':

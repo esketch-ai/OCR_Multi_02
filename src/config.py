@@ -9,7 +9,7 @@ class Config:
 
     # OCR Settings
     OCR_LANGUAGE = 'korean'
-    PDF_DPI = int(os.getenv('PDF_DPI', '200'))
+    PDF_DPI = int(os.getenv('PDF_DPI', '300'))
     MAX_IMAGE_SIZE = int(os.getenv('MAX_IMAGE_SIZE', '2048'))
 
     # Processing Settings
