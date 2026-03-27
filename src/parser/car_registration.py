@@ -530,26 +530,38 @@ class CarRegistrationParser:
         # Remove all spaces/whitespace for matching
         clean_text = re.sub(r'\s+', '', text)
 
-        # Keywords: 자동차등록증, 차대번호
+        # Keywords to check in clean (no-space) text
         keywords = [
-            r'\uc790\ub3d9\ucc28\ub4f1\ub85d\uc99d',  # 자동차등록증
-            r'\ucc28\ub300\ubc88\ud638',               # 차대번호
+            '\uc790\ub3d9\ucc28\ub4f1\ub85d\uc99d',   # 자동차등록증
+            '\uc790\ub3d9\ucc28\ub4f1\ub85d\uc99d\uc11c', # 자동차등록증서
+            '\ucc28\ub300\ubc88\ud638',                 # 차대번호
+            '\ub4f1\ub85d\ubc88\ud638',                 # 등록번호
+            '\uc790\ub3d9\ucc28\ub4f1\ub85d',           # 자동차등록
+            '\ucc28\ub7c9\ub4f1\ub85d',                 # 차량등록
         ]
 
         for keyword in keywords:
-            if re.search(keyword, clean_text):
+            if keyword in clean_text:
                 return True
 
-        # Also check with flexible spacing patterns (for original text)
-        # 자동차등록증 with optional spaces: 자\s*동\s*차\s*등\s*록\s*증
+        # Flexible spacing patterns (OCR may insert spaces between chars)
         flexible_patterns = [
-            r'\uc790\s*\ub3d9\s*\ucc28\s*\ub4f1\s*\ub85d\s*\uc99d',  # 자 동 차 등 록 증
-            r'\ucc28\s*\ub300\s*\ubc88\s*\ud638',                     # 차 대 번 호
+            r'\uc790\s*\ub3d9\s*\ucc28\s*\ub4f1\s*\ub85d',  # 자 동 차 등 록
+            r'\ucc28\s*\ub300\s*\ubc88\s*\ud638',             # 차 대 번 호
+            r'\ub4f1\s*\ub85d\s*\ubc88\s*\ud638',             # 등 록 번 호
+            r'\ucd5c\s*\ucd08\s*\ub4f1\s*\ub85d\s*\uc77c',    # 최 초 등 록 일
+            r'\uc81c\s*\uc6d0\s*\uad00\s*\ub9ac',             # 제 원 관 리
+            r'\uc6d0\s*\ub3d9\s*\uae30\s*\ud615\s*\uc2dd',    # 원 동 기 형 식
+            r'\uc2b9\s*\ucc28\s*\uc815\s*\uc6d0',             # 승 차 정 원
         ]
 
         for pattern in flexible_patterns:
             if re.search(pattern, text):
                 return True
+
+        # Check for VIN-like pattern (17-char alphanumeric starting with K)
+        if re.search(r'\b[K][A-Z0-9]{16}\b', clean_text):
+            return True
 
         return False
 
