@@ -53,7 +53,7 @@ class CarRegistrationParser:
             'vehicle_format': r'(?:\ud615\s*\uc2dd|\ud615\uc2dd\s*\ubc0f\s*\ubaa8\ub378\uc5f0\ub3c4)(?:.|\n){0,10}?\b([A-Z0-9-]{5,})(?=\s|/|\n)',
             'model_year': r'(?:\uc5f0\s*\uc2dd|\ubaa8\ub378\uc5f0\ub3c4)(?:.|\n){0,100}?\b((?:19|20)\d{2})\b',
             'engine_type': r'\uc6d0\ub3d9\uae30\ud615\uc2dd(?:.|\n){0,50}?([A-Z0-9-]{3,})',
-            'owner_name': r'(?:\uc131\uba85|\uc18c\uc720\uc790)(?:[^\s:]*)?[\s:]*([^\n]+)',
+            'owner_name': r'(?:\u2468[\s.]*)?(?:\uc131\s*\uba85|\uc18c\s*\uc720\s*\uc790)(?:\s*[\(\uff08]\s*\uba85\s*\uce6d\s*[\)\uff09])?[\s:]*([^\n]+)',
             'registration_date': r'\ucd5c\ucd08\ub4f1\ub85d\uc77c.*?(\d{4}\s*[\uac00-\ud7a3.\-/]\s*\d{1,2}\s*[\uac00-\ud7a3.\-/]\s*\d{1,2})',
             'length_mm': r'\uae38\s*\uc774.{0,30}?(\d[\d,]{3,6})\s*(?:mm|\u339c)?',
             'width_mm': r'\ub108\s*\ube44.{0,30}?(\d[\d,]{3,5})\s*(?:mm|\u339c)?',
@@ -104,7 +104,8 @@ class CarRegistrationParser:
             if match:
                 value = match.group(1).strip()
                 if field == 'owner_name':
-                    value = re.split(r'\s{2,}', value)[0]
+                    # Cut at next field marker (⑩, 주소, etc.) or double-space
+                    value = re.split(r'\s{2,}|\u2469|\u246A|\uc8fc\uc18c', value)[0]
                     value = self._clean_owner_name(value)
                 if field == 'vin':
                     value = self._correct_vin_ocr(value.upper())
@@ -119,6 +120,7 @@ class CarRegistrationParser:
                 result[field] = None
 
         # Step 2: Label-independent fallbacks for each field
+        self._fallback_owner_name(result, text)
         self._fallback_vin(result, text)
         self._fallback_vehicle_no(result, text)
         self._fallback_model_name(result, text)
@@ -130,6 +132,34 @@ class CarRegistrationParser:
         self._fallback_vehicle_format(result, text)
 
         return result
+
+    def _fallback_owner_name(self, result, text):
+        """Extract owner name using ⑨ marker and various label patterns."""
+        if result.get('owner_name'):
+            return
+
+        patterns = [
+            # ⑨ marker followed by content (may have 성명/명칭 between)
+            r'\u2468[^\n]*?(?:\uc131\uba85|\uba85\uce6d|\uc18c\uc720\uc790)[^\n]*?[\s:]+([^\n]+)',
+            # ⑨ marker directly followed by name (label garbled/absent)
+            r'\u2468[\s.:]*([가-힣][^\n]{1,30})',
+            # "9." or "9 " followed by 성명
+            r'(?:^|\n)\s*9[\s.]+(?:\uc131\uba85|\uba85\uce6d|\uc18c\uc720\uc790)[^\n]*?[\s:]+([^\n]+)',
+            # 성명(명칭) with flexible spacing
+            r'\uc131\s*\uba85\s*[\(\uff08]?\s*\uba85\s*\uce6d\s*[\)\uff09]?[\s:]+([^\n]+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, text)
+            if match:
+                name = match.group(1).strip()
+                # Take only first part if double-spaced (next field starts)
+                name = re.split(r'\s{2,}', name)[0]
+                name = self._clean_owner_name(name)
+                if name and len(name) >= 2:
+                    result['owner_name'] = name
+                    logging.info(f"Owner name via fallback: {name}")
+                    return
 
     def _fallback_vin(self, result, text):
         """Extract VIN using label-independent patterns."""
