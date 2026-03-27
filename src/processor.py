@@ -59,7 +59,9 @@ def process_single_file(file_path, filename):
             logger.info(f"OCR text length: {len(ocr_text)}, preview: {ocr_text[:100] if ocr_text else 'EMPTY'}")
 
             if not ocr_text:
-                return {'status': 'error', 'filename': filename, 'data': {}, 'message': 'No text detected'}
+                debug = ocr_result.get('debug', '')
+                msg = f'No text detected [API:{engine._api_version}, debug:{debug}]'
+                return {'status': 'error', 'filename': filename, 'data': {}, 'message': msg}
 
             # 3. Verify document type
             if not _parser.verify_document_type(ocr_text):

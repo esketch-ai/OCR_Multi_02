@@ -95,7 +95,7 @@ class LocalPaddleEngine:
             }
         """
         if not self.enabled or not self.ocr:
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': 'engine disabled'}
 
         try:
             if self._api_version == '3.x':
@@ -103,8 +103,9 @@ class LocalPaddleEngine:
             else:
                 return self._detect_text_v2(image_path)
         except Exception as e:
+            import traceback
             logging.error(f"PaddleOCR detection failed: {e}")
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': f'exception: {e}\n{traceback.format_exc()}'}
 
     def _detect_text_v3(self, image_path):
         """PaddleOCR 3.x API using predict(). Handles multiple result formats."""
@@ -112,20 +113,36 @@ class LocalPaddleEngine:
 
         if not result:
             logging.warning("PaddleOCR 3.x predict() returned empty result")
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': 'predict() returned empty'}
 
-        # Debug: log result structure to diagnose format issues
-        logging.info(f"PaddleOCR 3.x result type: {type(result)}, len: {len(result) if hasattr(result, '__len__') else 'N/A'}")
-        if result:
+        # Build debug info for diagnostics
+        debug_info = []
+        try:
+            debug_info.append(f"result type={type(result).__name__}, len={len(result) if hasattr(result, '__len__') else 'N/A'}")
             first = result[0]
-            logging.info(f"result[0] type: {type(first)}")
+            debug_info.append(f"result[0] type={type(first).__name__}")
             if hasattr(first, '__dict__'):
-                logging.info(f"result[0] attrs: {list(first.__dict__.keys())[:10]}")
+                debug_info.append(f"result[0] attrs={list(first.__dict__.keys())[:10]}")
             if hasattr(first, 'json'):
-                try:
-                    logging.info(f"result[0].json keys: {list(first.json.keys()) if isinstance(first.json, dict) else type(first.json)}")
-                except Exception:
-                    pass
+                json_val = first.json
+                if isinstance(json_val, dict):
+                    debug_info.append(f"json keys={list(json_val.keys())}")
+                    res = json_val.get('res', None)
+                    if res is not None:
+                        debug_info.append(f"json.res type={type(res).__name__}")
+                        if isinstance(res, dict):
+                            debug_info.append(f"json.res keys={list(res.keys())}")
+                        elif isinstance(res, list) and res:
+                            debug_info.append(f"json.res[0] type={type(res[0]).__name__}, len={len(res)}")
+                else:
+                    debug_info.append(f"json type={type(json_val).__name__}")
+            # Check string representation of first item
+            first_str = str(first)[:300]
+            debug_info.append(f"str(result[0])[:300]={first_str}")
+        except Exception as e:
+            debug_info.append(f"debug error: {e}")
+
+        logging.info(f"PaddleOCR 3.x debug: {'; '.join(debug_info)}")
 
         texts = []
         scores = []
@@ -193,14 +210,11 @@ class LocalPaddleEngine:
             except Exception as e:
                 logging.debug(f"Strategy 4 failed: {e}")
 
-        # Strategy 5: Fallback - try to convert result to string and extract
+        # All strategies failed
         if not texts:
-            try:
-                result_str = str(result)
-                logging.warning(f"All parsing strategies failed. Raw result (first 500 chars): {result_str[:500]}")
-            except Exception:
-                logging.warning("All parsing strategies failed and could not stringify result")
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0}
+            debug_str = '; '.join(debug_info)
+            logging.warning(f"All parsing strategies failed. Debug: {debug_str}")
+            return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': debug_str}
 
         full_text = '\n'.join(texts)
         lines = list(zip(texts, scores))

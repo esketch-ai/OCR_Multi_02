@@ -42,7 +42,7 @@ def get_file_path(f):
 def build_file_gallery(files):
     """Build a list of (filepath, label) for the file selector and preview the first image."""
     if not files:
-        return gr.update(choices=[], value=None, visible=False), None
+        return gr.Dropdown(choices=[], value=None, visible=False), None
 
     choices = []
     first_image = None
@@ -55,11 +55,14 @@ def build_file_gallery(files):
                 first_image = fp
 
     if not choices:
-        return gr.update(choices=[], value=None, visible=False), None
+        return gr.Dropdown(choices=[], value=None, visible=False), None
+
+    # Auto-preview: first image, or first PDF converted to image
+    first_preview = first_image or preview_selected_file(choices[0][1])
 
     return (
-        gr.update(choices=choices, value=choices[0][1], visible=True),
-        first_image,
+        gr.Dropdown(choices=choices, value=choices[0][1], visible=True),
+        first_preview,
     )
 
 
@@ -167,7 +170,7 @@ with gr.Blocks(
     title="자동차등록증 OCR",
     theme=gr.themes.Soft(),
 ) as demo:
-    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v12</sub>")
+    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v13</sub>")
     gr.Markdown("자동차등록증 이미지 또는 PDF를 업로드하면 OCR로 정보를 추출하여 엑셀 파일로 저장합니다.")
 
     with gr.Row():
