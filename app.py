@@ -132,10 +132,16 @@ def run_ocr(files, progress=gr.Progress()):
         if errors > 0:
             summary += f", {errors}개 실패"
 
-        # Add error/skip details to summary
+        # Add details to summary
         for r in results:
             if r['status'] in ('error', 'skipped'):
                 summary += f"\n  - {r['filename']}: {r.get('message', 'unknown')}"
+            elif r['status'] == 'success':
+                d = r['data']
+                summary += f"\n  - {r['filename']}: 차량번호={d.get('vehicle_no','?')} 차대번호={d.get('vin','?')}"
+                ocr_preview = d.get('_ocr_preview', '')
+                if ocr_preview:
+                    summary += f"\n    [OCR 원문 미리보기] {ocr_preview[:200]}"
 
         # Convert to rows
         rows = results_to_rows(results)
@@ -170,7 +176,7 @@ with gr.Blocks(
     title="자동차등록증 OCR",
     theme=gr.themes.Soft(),
 ) as demo:
-    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v16</sub>")
+    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v17</sub>")
     gr.Markdown("자동차등록증 이미지 또는 PDF를 업로드하면 OCR로 정보를 추출하여 엑셀 파일로 저장합니다.")
 
     with gr.Row():

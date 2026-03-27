@@ -77,6 +77,9 @@ def process_single_file(file_path, filename):
             parsed_data['vin_valid'] = is_valid
             parsed_data['vin_message'] = validation_msg
 
+            # Include OCR text preview for debugging
+            parsed_data['_ocr_preview'] = ocr_text[:300].replace('\n', ' | ')
+
             logger.info(f"Successfully processed: {filename}")
             return {'status': 'success', 'filename': filename, 'data': parsed_data, 'message': 'OK'}
 
