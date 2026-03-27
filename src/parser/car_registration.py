@@ -53,7 +53,7 @@ class CarRegistrationParser:
             'vehicle_format': r'(?:\ud615\s*\uc2dd|\ud615\uc2dd\s*\ubc0f\s*\ubaa8\ub378\uc5f0\ub3c4)(?:.|\n){0,10}?\b([A-Z0-9-]{5,})(?=\s|/|\n)',
             'model_year': r'(?:\uc5f0\s*\uc2dd|\ubaa8\ub378\uc5f0\ub3c4)(?:.|\n){0,100}?\b((?:19|20)\d{2})\b',
             'engine_type': r'\uc6d0\ub3d9\uae30\ud615\uc2dd(?:.|\n){0,50}?([A-Z0-9-]{3,})',
-            'owner_name': r'(?:\u2468[\s.]*)?(?:\uc131\s*\uba85|\uc18c\s*\uc720\s*\uc790)(?:\s*[\(\uff08]\s*\uba85\s*\uce6d\s*[\)\uff09])?[\s:]*([^\n]+)',
+            'owner_name': None,  # Table layout: label and value on different lines, handled by fallback
             'registration_date': r'\ucd5c\ucd08\ub4f1\ub85d\uc77c.*?(\d{4}\s*[\uac00-\ud7a3.\-/]\s*\d{1,2}\s*[\uac00-\ud7a3.\-/]\s*\d{1,2})',
             'length_mm': r'\uae38\s*\uc774.{0,30}?(\d[\d,]{3,6})\s*(?:mm|\u339c)?',
             'width_mm': r'\ub108\s*\ube44.{0,30}?(\d[\d,]{3,5})\s*(?:mm|\u339c)?',
@@ -100,13 +100,12 @@ class CarRegistrationParser:
 
         # Step 1: Try label-based extraction
         for field, pattern in self.label_fields.items():
+            if pattern is None:
+                result[field] = None
+                continue
             match = re.search(pattern, text, re.DOTALL)
             if match:
                 value = match.group(1).strip()
-                if field == 'owner_name':
-                    # Cut at next field marker (⑩, 주소, etc.) or double-space
-                    value = re.split(r'\s{2,}|\u2469|\u246A|\uc8fc\uc18c', value)[0]
-                    value = self._clean_owner_name(value)
                 if field == 'vin':
                     value = self._correct_vin_ocr(value.upper())
                 if field == 'registration_date':
@@ -134,31 +133,64 @@ class CarRegistrationParser:
         return result
 
     def _fallback_owner_name(self, result, text):
-        """Extract owner name using ⑨ marker and various label patterns."""
+        """Extract owner name from the line BELOW the ⑨성명(명칭) header.
+
+        Vehicle registration certs have table layout:
+          ⑨ 성명(명칭)    생년월일     ← header line
+             삼환교통      -           ← value line (target)
+        """
         if result.get('owner_name'):
             return
 
-        patterns = [
-            # ⑨ marker followed by content (may have 성명/명칭 between)
-            r'\u2468[^\n]*?(?:\uc131\uba85|\uba85\uce6d|\uc18c\uc720\uc790)[^\n]*?[\s:]+([^\n]+)',
-            # ⑨ marker directly followed by name (label garbled/absent)
-            r'\u2468[\s.:]*([가-힣][^\n]{1,30})',
-            # "9." or "9 " followed by 성명
-            r'(?:^|\n)\s*9[\s.]+(?:\uc131\uba85|\uba85\uce6d|\uc18c\uc720\uc790)[^\n]*?[\s:]+([^\n]+)',
-            # 성명(명칭) with flexible spacing
-            r'\uc131\s*\uba85\s*[\(\uff08]?\s*\uba85\s*\uce6d\s*[\)\uff09]?[\s:]+([^\n]+)',
+        lines = text.split('\n')
+
+        # Find the header line containing 성명/명칭/소유자 or ⑨
+        label_patterns = [
+            r'\uc131\s*\uba85',   # 성명
+            r'\uba85\s*\uce6d',   # 명칭
+            r'\uc18c\s*\uc720\s*\uc790',  # 소유자
+            r'\u2468',            # ⑨
         ]
 
-        for pattern in patterns:
-            match = re.search(pattern, text)
-            if match:
-                name = match.group(1).strip()
-                # Take only first part if double-spaced (next field starts)
-                name = re.split(r'\s{2,}', name)[0]
+        for i, line in enumerate(lines):
+            is_label_line = any(re.search(p, line) for p in label_patterns)
+            if not is_label_line:
+                continue
+
+            # Strategy 1: Value is on the NEXT line (table layout)
+            if i + 1 < len(lines):
+                next_line = lines[i + 1].strip()
+                # Skip if next line is another label/header
+                skip_words = ('생년월일', '주소', '주민등록', '사업자', '등록번호',
+                              '성명', '명칭', '소유자', '전화')
+                if next_line and not any(w in next_line for w in skip_words):
+                    # Take the first meaningful segment
+                    name = re.split(r'\s{2,}', next_line)[0].strip()
+                    name = self._clean_owner_name(name)
+                    # Must contain at least one Korean character
+                    if name and len(name) >= 2 and re.search(r'[가-힣]', name):
+                        result['owner_name'] = name
+                        logging.info(f"Owner name via next-line: {name}")
+                        return
+
+            # Strategy 2: Value is on the same line after all headers
+            # e.g., "⑨ 성명(명칭) 생년월일 삼환교통 1990.01.01"
+            # Remove known header words and take first Korean word group
+            cleaned = line
+            for hp in label_patterns:
+                cleaned = re.sub(hp, '', cleaned)
+            # Remove other header words
+            for hw in ('생년월일', '주소', '주민등록번호', '사업자번호'):
+                cleaned = cleaned.replace(hw, '')
+            # Remove parentheses, circled numbers, digits-only
+            cleaned = re.sub(r'[\u2460-\u2469()（）\d.:]+', ' ', cleaned)
+            cleaned = cleaned.strip()
+            if cleaned:
+                name = re.split(r'\s{2,}', cleaned)[0].strip()
                 name = self._clean_owner_name(name)
-                if name and len(name) >= 2:
+                if name and len(name) >= 2 and re.search(r'[가-힣]', name):
                     result['owner_name'] = name
-                    logging.info(f"Owner name via fallback: {name}")
+                    logging.info(f"Owner name via same-line cleanup: {name}")
                     return
 
     def _fallback_vin(self, result, text):
