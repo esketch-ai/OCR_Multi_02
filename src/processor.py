@@ -65,7 +65,8 @@ def process_single_file(file_path, filename):
 
             # 3. Verify document type
             if not _parser.verify_document_type(ocr_text):
-                return {'status': 'skipped', 'filename': filename, 'data': {}, 'message': 'Not a vehicle registration certificate'}
+                preview = ocr_text[:200].replace('\n', ' | ')
+                return {'status': 'skipped', 'filename': filename, 'data': {}, 'message': f'Not a vehicle registration certificate. OCR preview: {preview}'}
 
             # 4. Parse
             parsed_data = _parser.parse_single(ocr_text, filename=filename)
