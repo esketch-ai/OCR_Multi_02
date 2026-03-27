@@ -696,13 +696,13 @@ class CarRegistrationParser:
 
     def _clean_owner_name(self, name):
         """Remove company type suffixes/prefixes from owner name.
-        Handles OCR garbling like (주,추), (주,주), (쥬) etc."""
+        Handles all OCR variants: (주), 주), (추], 주삼환 → 삼환 etc."""
         if not name:
             return name
-        # Remove parenthesized company markers (handles OCR variants)
-        # e.g., (주), (주,추), (주,주), (쥬), (유), (사), (재), (합), (특)
-        name = re.sub(r'\([주쥬유사재합특][^)]*\)', '', name)
-        # Remove standalone text company markers
+        # Step 1: Remove any bracket/paren variations with company chars inside
+        # Handles: (주), [주], (주,추), 주), (추], etc.
+        name = re.sub(r'[\(\[\（][주쥬추유사재합특][^)\]）]*[\)\]）]', '', name)
+        # Step 2: Remove standalone text company markers
         markers = [
             r'주식회사', r'유한회사', r'유한책임회사',
             r'사단법인', r'재단법인',
@@ -710,7 +710,11 @@ class CarRegistrationParser:
         ]
         for pat in markers:
             name = re.sub(pat, '', name)
-        # Clean up leftover whitespace and punctuation
+        # Step 3: Remove leading company-type char with optional broken brackets
+        # e.g., "주삼환교통" → "삼환교통", "추]삼환교통" → "삼환교통"
+        name = re.sub(r'^[\(\[\（]?[주쥬추유사재합특][\)\]\）,]*\s*', '', name)
+        # Step 4: Clean up leftover brackets and punctuation
+        name = re.sub(r'^[\(\[\（\)\]\）,\s]+', '', name)
         name = re.sub(r'[,\s]+', ' ', name).strip()
         return name
 
