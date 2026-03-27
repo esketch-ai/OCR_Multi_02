@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import re
 import logging
+from src.validator.vin_validator import correct_vin_ocr, compute_check_digit, is_valid_structure
 
 
 class CarRegistrationParser:
@@ -104,6 +105,9 @@ class CarRegistrationParser:
                 value = match.group(1).strip()
                 if field == 'owner_name':
                     value = re.split(r'\s{2,}', value)[0]
+                    value = self._clean_owner_name(value)
+                if field == 'vin':
+                    value = self._correct_vin_ocr(value.upper())
                 if field == 'registration_date':
                     value = re.sub(r'[\ub144\uc6d4\uc77c\s]+', '-', value).strip('-')
                 # Reject bad captures starting with circled numbers
@@ -131,31 +135,44 @@ class CarRegistrationParser:
         if result.get('vin') and len(result['vin']) == 17:
             return
 
-        # First pass: exact 17-char VINs
+        # Pre-process: build space-stripped version for matching VINs split by spaces
+        text_nospace = re.sub(r'\s+', '', text)
+
+        # First pass: exact 17-char VINs from original text
         for pattern in self.vin_patterns:
             matches = re.findall(pattern, text, re.IGNORECASE)
             for match in matches:
-                vin = match.upper().strip()
+                vin = self._correct_vin_ocr(match.upper().strip())
                 if self._is_valid_vin(vin):
                     result['vin'] = vin
                     logging.info(f"VIN via fallback: {vin}")
                     return
 
-        # Second pass: near-valid VINs (15-17 chars with Korean prefix)
-        # OCR may miss or merge characters
+        # Second pass: try space-stripped text (PaddleOCR splits VIN with spaces)
+        for pattern in self.vin_patterns:
+            matches = re.findall(pattern, text_nospace, re.IGNORECASE)
+            for match in matches:
+                vin = self._correct_vin_ocr(match.upper().strip())
+                if self._is_valid_vin(vin):
+                    result['vin'] = vin
+                    logging.info(f"VIN via space-stripped fallback: {vin}")
+                    return
+
+        # Third pass: near-valid VINs (15-17 chars with Korean prefix)
         near_vin_patterns = [
             r'\b(K[A-Z0-9]{14,16})\b',
             r'\b(L[A-Z0-9]{14,16})\b',
         ]
-        for pattern in near_vin_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            for match in matches:
-                vin = match.upper().strip()
-                if 15 <= len(vin) <= 17 and vin.isalnum():
-                    if not any(c in vin for c in 'IOQ'):
-                        result['vin'] = vin
-                        logging.info(f"VIN via near-match ({len(vin)} chars): {vin}")
-                        return
+        for src in (text, text_nospace):
+            for pattern in near_vin_patterns:
+                matches = re.findall(pattern, src, re.IGNORECASE)
+                for match in matches:
+                    vin = self._correct_vin_ocr(match.upper().strip())
+                    if 15 <= len(vin) <= 17 and vin.isalnum():
+                        if not any(c in vin for c in 'IOQ'):
+                            result['vin'] = vin
+                            logging.info(f"VIN via near-match ({len(vin)} chars): {vin}")
+                            return
 
     def _fallback_vehicle_no(self, result, text):
         """Extract vehicle number using enhanced patterns."""
@@ -186,12 +203,6 @@ class CarRegistrationParser:
         """Extract model year using direct pattern matching."""
         if result.get('model_year'):
             return
-
-        # Look for 4-digit year near ⑤ marker or standalone
-        patterns = [
-            r'\u2464[^\n]*?((?:19|20)\d{2})',  # After ⑤
-            r'(?:20[12]\d)\s*[-/]\s*\d',       # Year in date-like context (skip)
-        ]
 
         # Find all 4-digit years (19xx or 20xx)
         years = re.findall(r'\b((?:19|20)\d{2})\b', text)
@@ -564,14 +575,42 @@ class CarRegistrationParser:
 
         return result
 
+    def _clean_owner_name(self, name):
+        """Remove company type suffixes/prefixes from owner name."""
+        if not name:
+            return name
+        # Remove common Korean company type indicators
+        patterns = [
+            r'\(주\)',        # (주)
+            r'\(주,주\)',     # (주,주)
+            r'\(유\)',        # (유)
+            r'\(사\)',        # (사)
+            r'\(재\)',        # (재)
+            r'\(합\)',        # (합)
+            r'\(특\)',        # (특)
+            r'주식회사',      # 주식회사
+            r'유한회사',      # 유한회사
+            r'유한책임회사',  # 유한책임회사
+            r'사단법인',      # 사단법인
+            r'재단법인',      # 재단법인
+            r'합자회사',      # 합자회사
+            r'합명회사',      # 합명회사
+            r'합동회사',      # 합동회사
+        ]
+        for pat in patterns:
+            name = re.sub(pat, '', name)
+        # Clean up leftover whitespace
+        name = re.sub(r'\s+', ' ', name).strip()
+        return name
+
+    def _correct_vin_ocr(self, vin):
+        """Fix common OCR misreads in VIN using ISO 3779 check digit verification."""
+        return correct_vin_ocr(vin)
+
     def _is_valid_vin(self, vin):
-        if not vin or len(vin) != 17:
-            return False
-        if any(c in vin for c in 'IOQ'):
-            return False
-        if not vin.isalnum():
-            return False
-        return True
+        """Validate VIN structure per ISO 3779."""
+        valid, _ = is_valid_structure(vin)
+        return valid
 
     def _normalize_vehicle_no(self, vehicle_no):
         if not vehicle_no:
