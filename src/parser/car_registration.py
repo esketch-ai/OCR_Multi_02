@@ -63,14 +63,23 @@ class CarRegistrationParser:
 
         # VIN fallback patterns (label-independent)
         self.vin_patterns = [
+            # After Korean label (차대번호) with newlines
             r'\ucc28\ub300\ubc88\ud638[^\n]*?[\s\n:]*([A-Z0-9]{17})',
-            r'\u2465[^\n]*?[\s\n:]*([A-Z0-9]{17})',
-            r'\u2466[^\n]*?[\s\n:]*([A-Z0-9]{17})',
-            r'\b(KM[A-Z0-9]{14,15})\b',
-            r'\b(KL[A-Z0-9]{14,15})\b',
-            r'\b(KN[A-Z0-9]{14,15})\b',
-            r'\b(KP[A-Z0-9]{14,15})\b',
-            r'\b(LA[A-Z0-9]{14,15})\b',
+            # After ⑥ marker (may be on different line)
+            r'\u2465[\s\S]{0,30}?([A-Z0-9]{17})',
+            r'\u2466[\s\S]{0,30}?([A-Z0-9]{17})',
+            # After "⑥" followed by garbled text then VIN on next line
+            r'\u2465[^\n]*\n[^\n]*?([A-Z0-9]{17})',
+            # Direct Korean vehicle VIN prefixes (most reliable)
+            r'\b(KMJ[A-Z0-9]{14})\b',  # Hyundai buses
+            r'\b(KMH[A-Z0-9]{14})\b',  # Hyundai cars
+            r'\b(KNA[A-Z0-9]{14})\b',  # Kia
+            r'\b(KM[A-Z0-9]{15})\b',
+            r'\b(KL[A-Z0-9]{15})\b',
+            r'\b(KN[A-Z0-9]{15})\b',
+            r'\b(KP[A-Z0-9]{15})\b',
+            r'\b(LA[A-Z0-9]{15})\b',
+            # Any 17-char VIN-valid string
             r'\b([A-HJ-NPR-Z0-9]{17})\b',
         ]
 
@@ -122,6 +131,7 @@ class CarRegistrationParser:
         if result.get('vin') and len(result['vin']) == 17:
             return
 
+        # First pass: exact 17-char VINs
         for pattern in self.vin_patterns:
             matches = re.findall(pattern, text, re.IGNORECASE)
             for match in matches:
@@ -130,6 +140,22 @@ class CarRegistrationParser:
                     result['vin'] = vin
                     logging.info(f"VIN via fallback: {vin}")
                     return
+
+        # Second pass: near-valid VINs (15-17 chars with Korean prefix)
+        # OCR may miss or merge characters
+        near_vin_patterns = [
+            r'\b(K[A-Z0-9]{14,16})\b',
+            r'\b(L[A-Z0-9]{14,16})\b',
+        ]
+        for pattern in near_vin_patterns:
+            matches = re.findall(pattern, text, re.IGNORECASE)
+            for match in matches:
+                vin = match.upper().strip()
+                if 15 <= len(vin) <= 17 and vin.isalnum():
+                    if not any(c in vin for c in 'IOQ'):
+                        result['vin'] = vin
+                        logging.info(f"VIN via near-match ({len(vin)} chars): {vin}")
+                        return
 
     def _fallback_vehicle_no(self, result, text):
         """Extract vehicle number using enhanced patterns."""
