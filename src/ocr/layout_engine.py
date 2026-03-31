@@ -52,15 +52,20 @@ class LayoutEngine:
             self._init_v2()
 
     def _init_v2(self):
-        """PaddleOCR 2.x: PPStructure class."""
+        """PaddleOCR 2.x: PPStructure class.
+        Note: PP-Structure layout models only support 'en' and 'ch'.
+        We use 'ch' because CJK layout models handle Korean document structure well.
+        OCR text recognition within PP-Structure will use Chinese,
+        but we only use the layout/table structure — actual text comes from PaddleOCR korean engine.
+        """
         from paddleocr import PPStructure
-        logger.info("Initializing PP-Structure (2.x API)...")
+        logger.info("Initializing PP-Structure (2.x API, lang=ch for layout)...")
         self.engine = PPStructure(
             layout=True,
             table=True,
             ocr=True,
             show_log=False,
-            lang='korean',
+            lang='ch',
         )
         self._api_version = '2.x'
         self.enabled = True
