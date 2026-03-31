@@ -33,6 +33,7 @@ LABEL_FIELD_MAP = {
     'height_mm': ['높이', '높 이'],
     'total_weight_kg': ['총중량', '총 중량'],
     'passenger_capacity': ['승차정원', '승차 정원', '정원'],
+    'purchase_price': ['출고가격', '취득가격', '출고취득가격'],
 }
 
 # 역방향 매핑: 라벨 텍스트 → 필드명

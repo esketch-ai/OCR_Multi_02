@@ -401,5 +401,6 @@ def results_to_rows(results):
             d.get('total_weight_kg', ''),
             d.get('passenger_capacity', ''),
             d.get('fuel_type', ''),
+            d.get('purchase_price', ''),
         ])
     return rows

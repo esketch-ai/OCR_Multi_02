@@ -135,6 +135,7 @@ class CarRegistrationParser:
         self._fallback_registration_date(result, text)
         self._fallback_engine_type(result, text)
         self._fallback_vehicle_format(result, text)
+        self._fallback_purchase_price(result, text)
 
         return result
 
@@ -687,6 +688,48 @@ class CarRegistrationParser:
         if match:
             result['vehicle_format'] = match.group(1)
             return
+
+    def _fallback_purchase_price(self, result, text):
+        """Extract vehicle purchase price (출고/취득 가격).
+
+        Patterns on registration cert:
+          자동차출고(취득)가격(부가세제외) : 117,964,636원
+          출고가격 : 117,964,636
+        OCR may insert spaces between characters.
+        """
+        if result.get('purchase_price'):
+            return
+
+        # Remove spaces for matching (OCR often spaces out Korean)
+        clean = re.sub(r'\s+', '', text)
+
+        # Pattern: 출고/취득 가격 label followed by number
+        patterns = [
+            r'출고\(?취득\)?가격[^:]*?[:]\s*([0-9,]+)',
+            r'취득가격[^:]*?[:]\s*([0-9,]+)',
+            r'출고가격[^:]*?[:]\s*([0-9,]+)',
+        ]
+
+        for pattern in patterns:
+            match = re.search(pattern, clean)
+            if match:
+                price = match.group(1).replace(',', '')
+                if price.isdigit() and int(price) >= 1000000:
+                    result['purchase_price'] = f"{int(price):,}"
+                    logging.info(f"Purchase price: {result['purchase_price']}원")
+                    return
+
+        # Fallback: try with spaces in original text
+        match = re.search(
+            r'출\s*고\s*[\(\(]?\s*취\s*득\s*[\)\)]?\s*가\s*격[^:]*?[:：]\s*([\d,\s]+)',
+            text
+        )
+        if match:
+            price = re.sub(r'[\s,]', '', match.group(1))
+            if price.isdigit() and int(price) >= 1000000:
+                result['purchase_price'] = f"{int(price):,}"
+                logging.info(f"Purchase price (spaced): {result['purchase_price']}원")
+                return
 
     def parse_single(self, ocr_text, filename=None):
         """

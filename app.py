@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 HEADERS = [
     '차량번호', '업체명', '차대번호', '차명', '연식',
     '차량등록일', '차종', '길이(mm)', '너비(mm)', '높이(mm)',
-    '총중량(kg)', '승차정원', '연료',
+    '총중량(kg)', '승차정원', '연료', '출고가격(원)',
 ]
 
 SUPPORTED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.pdf')
