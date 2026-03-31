@@ -25,37 +25,24 @@ from src.config import Config
 logger = logging.getLogger(__name__)
 
 # Module-level instances (initialized lazily)
-_ocr_engine_ko = None
-_ocr_engine_en = None
+_ocr_engine = None
 _layout_engine = None
 _parser = CarRegistrationParser()
 _form_parser = FormParser()
 _validator = VINValidator()
 _preprocessor = ImagePreprocessor(dpi=Config.PDF_DPI, max_size=Config.MAX_IMAGE_SIZE)
 
-# Fields best recognized by English model (alphanumeric-heavy)
-_EN_FIELDS = {'vin', 'engine_type', 'vehicle_format', 'length_mm', 'width_mm',
-              'height_mm', 'total_weight_kg', 'passenger_capacity', 'model_year'}
-# Fields best recognized by Korean model
-_KO_FIELDS = {'vehicle_no', 'owner_name', 'model_name', 'vehicle_type',
-              'fuel_type', 'registration_date', 'usage'}
 
-
-def get_ocr_engine(lang=None):
-    """Get or create the PaddleOCR engine singleton for given language."""
-    global _ocr_engine_ko, _ocr_engine_en
-    if lang == 'en':
-        if _ocr_engine_en is None:
-            _ocr_engine_en = LocalPaddleEngine(lang='en', enable_paddle=True)
-        return _ocr_engine_en
-    else:
-        if _ocr_engine_ko is None:
-            _ocr_engine_ko = LocalPaddleEngine(lang=Config.OCR_LANGUAGE, enable_paddle=True)
-        return _ocr_engine_ko
+def get_ocr_engine():
+    """Get or create the PaddleOCR engine singleton."""
+    global _ocr_engine
+    if _ocr_engine is None:
+        _ocr_engine = LocalPaddleEngine(lang=Config.OCR_LANGUAGE, enable_paddle=True)
+    return _ocr_engine
 
 
 def get_layout_engine():
-    """Get or create the PP-Structure layout engine singleton."""
+    """Get or create the PP-Structure layout engine singleton (lazy)."""
     global _layout_engine
     if _layout_engine is None and Config.ENABLE_LAYOUT_ANALYSIS:
         try:
@@ -70,19 +57,14 @@ def get_layout_engine():
 
 
 def warmup():
-    """Pre-initialize primary OCR engine at startup. English engine loads lazily on first use."""
-    logger.info("Warming up OCR engines...")
+    """Pre-initialize Korean OCR engine only. Layout engine loads lazily."""
+    logger.info("Warming up Korean OCR engine...")
     try:
-        get_ocr_engine('korean')
-        logger.info("PaddleOCR (korean) engine ready.")
+        get_ocr_engine()
+        logger.info("PaddleOCR engine ready.")
     except Exception as e:
-        logger.warning(f"PaddleOCR (korean) warmup failed: {e}")
-    try:
-        get_layout_engine()
-        logger.info("Layout engine ready.")
-    except Exception as e:
-        logger.warning(f"Layout engine warmup failed: {e}")
-    logger.info("Warmup complete. (English OCR will init on first use)")
+        logger.warning(f"PaddleOCR warmup failed: {e}")
+    logger.info("Warmup complete.")
 
 
 def _correct_fuel_type_ocr(fuel_type):
@@ -245,53 +227,10 @@ def _get_image_dimensions(image_path):
         return None, None
 
 
-def _merge_dual_ocr(parsed_ko, parsed_en):
-    """Merge Korean and English OCR results by field type.
-
-    Korean engine is better for: 한글 라벨, 업체명, 차명, 차종, 연료
-    English engine is better for: VIN, 엔진코드, 치수(숫자), 중량
-
-    Strategy: For alphanumeric fields, prefer English result if it looks valid.
-    For Korean text fields, prefer Korean result.
-    """
-    merged = dict(parsed_ko)
-
-    for field in _EN_FIELDS:
-        en_val = parsed_en.get(field)
-        ko_val = parsed_ko.get(field)
-        if not en_val:
-            continue
-        if not ko_val:
-            merged[field] = en_val
-            logger.info(f"Field '{field}' filled by EN engine: {en_val}")
-            continue
-
-        # For VIN: prefer the one that validates
-        if field == 'vin':
-            from src.validator.vin_validator import is_valid_structure
-            en_valid, _ = is_valid_structure(en_val)
-            ko_valid, _ = is_valid_structure(ko_val)
-            if en_valid and not ko_valid:
-                merged[field] = en_val
-                logger.info(f"VIN replaced by EN engine: {ko_val} → {en_val}")
-            continue
-
-        # For numeric fields: prefer the one with more digits
-        if field in ('length_mm', 'width_mm', 'height_mm', 'total_weight_kg', 'passenger_capacity'):
-            import re
-            en_digits = len(re.sub(r'\D', '', en_val))
-            ko_digits = len(re.sub(r'\D', '', ko_val))
-            if en_digits > ko_digits:
-                merged[field] = en_val
-                logger.info(f"Field '{field}' replaced by EN engine: {ko_val} → {en_val}")
-
-    return merged
-
-
 def process_single_file(file_path, filename):
-    """Process a single image/PDF file through the dual OCR pipeline."""
+    """Process a single image/PDF file through the OCR pipeline."""
     try:
-        engine_ko = get_ocr_engine('korean')
+        engine = get_ocr_engine()
 
         # 1. Preprocess image/PDF (now with CLAHE, deskew, denoise)
         image_paths = _preprocessor.load_image(file_path)
@@ -301,16 +240,16 @@ def process_single_file(file_path, filename):
         image_path = image_paths[0]
 
         try:
-            # 2a. Run Korean OCR (primary - for Korean labels and text)
-            logger.info(f"Running Korean OCR on: {image_path}")
-            ocr_result_ko = engine_ko.detect_text(image_path)
-            ocr_text = ocr_result_ko.get('text', '')
-            ocr_results = ocr_result_ko.get('ocr_results', [])
-            logger.info(f"Korean OCR: text={len(ocr_text)} chars, bbox={len(ocr_results)}")
+            # 2. Run PaddleOCR (Korean)
+            logger.info(f"Running OCR on: {image_path}")
+            ocr_result = engine.detect_text(image_path)
+            ocr_text = ocr_result.get('text', '')
+            ocr_results = ocr_result.get('ocr_results', [])
+            logger.info(f"OCR text length: {len(ocr_text)}, bbox results: {len(ocr_results)}")
 
             if not ocr_text:
-                debug = ocr_result_ko.get('debug', '')
-                msg = f'No text detected [API:{engine_ko._api_version}, debug:{debug}]'
+                debug = ocr_result.get('debug', '')
+                msg = f'No text detected [API:{engine._api_version}, debug:{debug}]'
                 return {'status': 'error', 'filename': filename, 'data': {}, 'message': msg}
 
             # 3. Verify document type
@@ -319,35 +258,8 @@ def process_single_file(file_path, filename):
                 return {'status': 'skipped', 'filename': filename, 'data': {},
                         'message': f'Not a vehicle registration certificate. OCR preview: {preview}'}
 
-            # 4a. Parse Korean OCR text
-            parsed_ko = _parser.parse_single(ocr_text, filename=filename)
-
-            # 2b. Run English OCR (secondary - for VIN, codes, numbers)
-            engine_en = get_ocr_engine('en')
-            if engine_en and engine_en.enabled:
-                try:
-                    logger.info(f"Running English OCR on: {image_path}")
-                    ocr_result_en = engine_en.detect_text(image_path)
-                    ocr_text_en = ocr_result_en.get('text', '')
-                    ocr_results_en = ocr_result_en.get('ocr_results', [])
-                    logger.info(f"English OCR: text={len(ocr_text_en)} chars, bbox={len(ocr_results_en)}")
-
-                    if ocr_text_en:
-                        # 4b. Parse English OCR text
-                        parsed_en = _parser.parse_single(ocr_text_en, filename=filename)
-                        # 4c. Merge: field-type-aware selection
-                        parsed_data = _merge_dual_ocr(parsed_ko, parsed_en)
-
-                        # Use English bbox results too (better for alphanumeric)
-                        if ocr_results_en:
-                            ocr_results = ocr_results or ocr_results_en
-                    else:
-                        parsed_data = parsed_ko
-                except Exception as e:
-                    logger.warning(f"English OCR failed (non-fatal): {e}")
-                    parsed_data = parsed_ko
-            else:
-                parsed_data = parsed_ko
+            # 4. Parse (text-based)
+            parsed_data = _parser.parse_single(ocr_text, filename=filename)
 
             # 5. Coordinate-based extraction (supplement text-based results)
             img_w, img_h = _get_image_dimensions(image_path)

@@ -237,9 +237,8 @@ with gr.Blocks(
         outputs=[result_table, excel_download, summary_text],
     )
 
-# Warmup OCR engines in background so Gradio starts immediately (HF health check)
-import threading
-threading.Thread(target=warmup, daemon=True).start()
+# Pre-initialize Korean OCR engine (layout engine loads lazily on first use)
+warmup()
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)
