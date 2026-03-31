@@ -13,21 +13,20 @@ warnings.filterwarnings('ignore')
 
 class LocalPaddleEngine:
     """
-    PaddleOCR engine with singleton pattern and memory optimization.
+    PaddleOCR engine with per-language singleton pattern.
     Supports Korean and English text recognition.
     Auto-detects PaddleOCR version and uses appropriate API.
     """
-    _instance = None
-    _initialized = False
+    _instances = {}  # lang -> instance
 
     def __new__(cls, lang='korean', enable_paddle=True):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        if lang not in cls._instances:
+            cls._instances[lang] = super().__new__(cls)
+            cls._instances[lang]._init_done = False
+        return cls._instances[lang]
 
     def __init__(self, lang='korean', enable_paddle=True):
-        # Only initialize once (singleton pattern)
-        if LocalPaddleEngine._initialized:
+        if self._init_done:
             return
 
         self.ocr = None
@@ -36,8 +35,8 @@ class LocalPaddleEngine:
         self._api_version = None  # '2.x' or '3.x'
 
         if not enable_paddle:
-            logging.info("PaddleOCR disabled by configuration")
-            LocalPaddleEngine._initialized = True
+            logging.info(f"PaddleOCR ({lang}) disabled by configuration")
+            self._init_done = True
             return
 
         try:
@@ -69,18 +68,18 @@ class LocalPaddleEngine:
                     det_limit_type='max',
                 )
 
-            logging.info(f"PaddleOCR initialized successfully (API: {self._api_version}).")
+            logging.info(f"PaddleOCR ({lang}) initialized successfully (API: {self._api_version}).")
 
         except ImportError:
             logging.warning("PaddleOCR not installed. Disabling Paddle engine.")
             self.ocr = None
             self.enabled = False
         except Exception as e:
-            logging.error(f"Failed to init PaddleOCR: {e}")
+            logging.error(f"Failed to init PaddleOCR ({lang}): {e}")
             self.ocr = None
             self.enabled = False
-
-        LocalPaddleEngine._initialized = True
+        finally:
+            self._init_done = True
 
     def detect_text(self, image_path):
         """
@@ -291,10 +290,10 @@ class LocalPaddleEngine:
 
     @classmethod
     def cleanup(cls):
-        """Cleanup PaddleOCR resources"""
-        if cls._instance and cls._instance.ocr:
-            del cls._instance.ocr
-            cls._instance.ocr = None
-        cls._instance = None
-        cls._initialized = False
+        """Cleanup PaddleOCR resources for all language instances."""
+        for lang, instance in cls._instances.items():
+            if instance and instance.ocr:
+                del instance.ocr
+                instance.ocr = None
+        cls._instances.clear()
         gc.collect()
