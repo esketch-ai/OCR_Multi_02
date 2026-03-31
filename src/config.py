@@ -12,6 +12,9 @@ class Config:
     PDF_DPI = int(os.getenv('PDF_DPI', '300'))
     MAX_IMAGE_SIZE = int(os.getenv('MAX_IMAGE_SIZE', '2048'))
 
+    # Layout Analysis (PP-Structure)
+    ENABLE_LAYOUT_ANALYSIS = os.getenv('ENABLE_LAYOUT_ANALYSIS', 'true').lower() == 'true'
+
     # Processing Settings
     GC_INTERVAL = int(os.getenv('GC_INTERVAL', '10'))
 

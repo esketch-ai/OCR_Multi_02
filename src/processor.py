@@ -7,6 +7,7 @@ Enhanced with OCR_Vehicle_02 algorithms:
 - Image preprocessing (CLAHE, deskew, denoise)
 - Coordinate-based field extraction (bbox Y%/X% zones)
 - Standards-based validation (자동차관리법 규격)
+- PP-Structure layout analysis (form-aware extraction + ensemble)
 """
 import gc
 import logging
@@ -14,6 +15,7 @@ import traceback
 from src.ocr.paddle_engine import LocalPaddleEngine
 from src.ocr.preprocessor import ImagePreprocessor
 from src.parser.car_registration import CarRegistrationParser
+from src.parser.form_parser import FormParser
 from src.validator.vin_validator import VINValidator
 from src.validator.standards import (
     FUEL_TYPE_CORRECTIONS, DIMENSION_RANGES, UNIVERSAL_RANGES, NOISE_PATTERNS
@@ -24,7 +26,9 @@ logger = logging.getLogger(__name__)
 
 # Module-level instances (initialized lazily)
 _ocr_engine = None
+_layout_engine = None
 _parser = CarRegistrationParser()
+_form_parser = FormParser()
 _validator = VINValidator()
 _preprocessor = ImagePreprocessor(dpi=Config.PDF_DPI, max_size=Config.MAX_IMAGE_SIZE)
 
@@ -35,6 +39,21 @@ def get_ocr_engine():
     if _ocr_engine is None:
         _ocr_engine = LocalPaddleEngine(lang=Config.OCR_LANGUAGE, enable_paddle=True)
     return _ocr_engine
+
+
+def get_layout_engine():
+    """Get or create the PP-Structure layout engine singleton."""
+    global _layout_engine
+    if _layout_engine is None and Config.ENABLE_LAYOUT_ANALYSIS:
+        try:
+            from src.ocr.layout_engine import LayoutEngine
+            _layout_engine = LayoutEngine()
+            if not _layout_engine.enabled:
+                _layout_engine = None
+        except Exception as e:
+            logger.warning(f"Layout engine init failed, continuing without it: {e}")
+            _layout_engine = None
+    return _layout_engine
 
 
 def _correct_fuel_type_ocr(fuel_type):
@@ -148,6 +167,37 @@ def _extract_bbox_fields(ocr_results, img_height, img_width):
     return result
 
 
+def _apply_layout_ensemble(parsed_data, layout_engine, image_path, img_h, img_w):
+    """Apply PP-Structure layout analysis results to supplement text-based parsing.
+
+    Only fills in fields that text-based parsing missed or has low confidence on.
+    Layout engine failure does not affect the existing pipeline.
+    """
+    try:
+        layout_result = layout_engine.analyze(image_path)
+        if not layout_result.get('tables') and not layout_result.get('text_regions'):
+            return
+
+        form_fields = _form_parser.parse_layout(layout_result, img_h, img_w)
+
+        filled = []
+        for field_name, field_info in form_fields.items():
+            value = field_info.get('value', '')
+            if not value:
+                continue
+
+            existing = parsed_data.get(field_name)
+            if not existing:
+                parsed_data[field_name] = value
+                filled.append(field_name)
+
+        if filled:
+            logger.info(f"Layout ensemble filled {len(filled)} fields: {filled}")
+
+    except Exception as e:
+        logger.warning(f"Layout ensemble failed (non-fatal): {e}")
+
+
 def _is_noise(text):
     """Check if text is noise (legal/warning text)."""
     for pattern in NOISE_PATTERNS:
@@ -201,8 +251,8 @@ def process_single_file(file_path, filename):
             parsed_data = _parser.parse_single(ocr_text, filename=filename)
 
             # 5. Coordinate-based extraction (supplement text-based results)
+            img_w, img_h = _get_image_dimensions(image_path)
             if ocr_results:
-                img_w, img_h = _get_image_dimensions(image_path)
                 if img_w and img_h:
                     bbox_fields = _extract_bbox_fields(ocr_results, img_h, img_w)
                     # Only fill in fields that text-based parsing missed
@@ -210,6 +260,11 @@ def process_single_file(file_path, filename):
                         if not parsed_data.get(field):
                             parsed_data[field] = value
                             logger.info(f"Field '{field}' filled by bbox extraction: {value}")
+
+            # 5.5. PP-Structure layout analysis (ensemble with text-based results)
+            layout_engine = get_layout_engine()
+            if layout_engine:
+                _apply_layout_ensemble(parsed_data, layout_engine, image_path, img_h, img_w)
 
             # 6. Apply fuel type OCR corrections (자동차관리법)
             if parsed_data.get('fuel_type'):
