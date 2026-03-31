@@ -63,7 +63,7 @@ class LayoutEngine:
         self.engine = PPStructure(
             layout=True,
             table=True,
-            ocr=True,
+            ocr=False,
             show_log=False,
             lang='ch',
         )
