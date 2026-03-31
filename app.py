@@ -237,8 +237,9 @@ with gr.Blocks(
         outputs=[result_table, excel_download, summary_text],
     )
 
-# Pre-initialize OCR engines at import time to avoid first-request timeout on HF Spaces
-warmup()
+# Warmup OCR engines in background so Gradio starts immediately (HF health check)
+import threading
+threading.Thread(target=warmup, daemon=True).start()
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)
