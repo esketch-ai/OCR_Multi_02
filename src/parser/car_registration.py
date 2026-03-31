@@ -15,38 +15,38 @@ class CarRegistrationParser:
     # Korean VIN prefixes (World Manufacturer Identifier)
     VIN_PREFIXES = ('KM', 'KL', 'KN', 'KP', 'LA', 'LF', 'LG', 'LJ', 'KMJ', 'KMH', 'KNA')
 
-    # Fuel type mappings (Korean -> standardized)
+    # Fuel type mappings (Korean -> standardized Korean output)
     # Hydrogen keywords MUST be checked before Electric (수소전기 contains 전기)
     FUEL_TYPES = {
-        '수소': 'Hydrogen',
-        '수소전기': 'Hydrogen',
-        'FCEV': 'Hydrogen',
-        '연료전지': 'Hydrogen',
+        '수소': '수소전기',
+        '수소전기': '수소전기',
+        'FCEV': '수소전기',
+        '연료전지': '수소전기',
         'CNG': 'CNG',
         '천연가스': 'CNG',
         '압축천연가스': 'CNG',
-        '디젤': 'Diesel',
-        '경유': 'Diesel',
+        '디젤': '경유',
+        '경유': '경유',
         'LPG': 'LPG',
         '엘피지': 'LPG',
         '액화석유가스': 'LPG',
-        '하이브리드': 'Hybrid',
-        '전기': 'Electric',
-        '휘발유': 'Gasoline',
-        '가솔린': 'Gasoline',
+        '하이브리드': '하이브리드',
+        '전기': '전기',
+        '휘발유': '휘발유',
+        '가솔린': '휘발유',
     }
 
     # Fuel keywords for OCR text detection
     # Order matters: Hydrogen before LPG (수소전기 contains 전기),
     # CNG before others, Electric last
     FUEL_OCR_KEYWORDS = [
-        ('Hydrogen', ['수소', 'FCEV', '연료전지', '수소전기', 'HYDROGEN', 'H2']),
+        ('수소전기', ['수소', 'FCEV', '연료전지', '수소전기', 'HYDROGEN', 'H2']),
         ('CNG', ['CNG', '천연가스', '압축천연가스']),
-        ('Diesel', ['디젤', '경유']),
+        ('경유', ['디젤', '경유']),
         ('LPG', ['LPG', '엘피지', '액화석유가스']),
-        ('Hybrid', ['하이브리드', 'HEV', 'PHEV']),
-        ('Gasoline', ['휘발유', '가솔린']),
-        ('Electric', ['전기', 'EV', 'ELEC']),
+        ('하이브리드', ['하이브리드', 'HEV', 'PHEV']),
+        ('휘발유', ['휘발유', '가솔린']),
+        ('전기', ['전기', 'EV', 'ELEC']),
     ]
 
     def __init__(self):
@@ -619,26 +619,40 @@ class CarRegistrationParser:
                         return
 
     def _fallback_registration_date(self, result, text):
-        """Extract registration date from date patterns in text."""
+        """Extract registration date from date patterns in text.
+        Prefers dates near '최초등록일' label over generic earliest date."""
         if result.get('registration_date'):
             return
 
-        # Look for dates in various formats
-        patterns = [
-            r'(\d{4})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})',  # 2019.06.12 or 2019-06-12
-            r'(\d{4})(\d{2})(\d{2})',  # 20190612
-        ]
+        date_pattern = r'(\d{4})\s*[.\-/년]\s*(\d{1,2})\s*[.\-/월]\s*(\d{1,2})'
 
+        # Strategy 1: Date near '최초등록일' or '등록일' label (within 50 chars)
+        label_patterns = [
+            r'최\s*초\s*등\s*록\s*일',
+            r'등\s*록\s*일',
+        ]
+        for lp in label_patterns:
+            match = re.search(lp + r'.{0,50}?' + date_pattern, text, re.DOTALL)
+            if match:
+                y, m, d = int(match.group(1)), int(match.group(2)), int(match.group(3))
+                if 1990 <= y <= 2030 and 1 <= m <= 12 and 1 <= d <= 31:
+                    result['registration_date'] = f"{y}-{m:02d}-{d:02d}"
+                    logging.info(f"Registration date via label proximity: {result['registration_date']}")
+                    return
+
+        # Strategy 2: Fallback to all dates, prefer earliest
         dates = []
-        for pattern in patterns:
-            for match in re.finditer(pattern, text):
-                y, m, d = match.groups()
-                y, m, d = int(y), int(m), int(d)
-                if 2000 <= y <= 2030 and 1 <= m <= 12 and 1 <= d <= 31:
-                    dates.append(f"{y}-{m:02d}-{d:02d}")
+        for match in re.finditer(date_pattern, text):
+            y, m, d = int(match.group(1)), int(match.group(2)), int(match.group(3))
+            if 2000 <= y <= 2030 and 1 <= m <= 12 and 1 <= d <= 31:
+                dates.append(f"{y}-{m:02d}-{d:02d}")
+        # Also try compact format
+        for match in re.finditer(r'(\d{4})(\d{2})(\d{2})', text):
+            y, m, d = int(match.group(1)), int(match.group(2)), int(match.group(3))
+            if 2000 <= y <= 2030 and 1 <= m <= 12 and 1 <= d <= 31:
+                dates.append(f"{y}-{m:02d}-{d:02d}")
 
         if dates:
-            # Use the earliest date (registration date is typically the first/earliest)
             dates.sort()
             result['registration_date'] = dates[0]
             logging.info(f"Registration date via fallback: {dates[0]}")
@@ -840,23 +854,23 @@ class CarRegistrationParser:
         if engine_type:
             engine_upper = engine_type.upper()
             if 'FCEV' in engine_upper or 'FC' in engine_upper:
-                return 'Hydrogen'
+                return '수소전기'
             if 'CNG' in engine_upper:
                 return 'CNG'
             if engine_upper.startswith('TED') or engine_upper.startswith('EM'):
-                return 'Electric'
+                return '전기'
 
         # Priority 4: Model name hints
         if model_name:
             model_upper = model_name.upper()
             if '수소' in model_name or 'FCEV' in model_upper or 'HYDROGEN' in model_upper:
-                return 'Hydrogen'
+                return '수소전기'
             if 'ELEC' in model_upper or '전기' in model_name:
-                return 'Electric'
+                return '전기'
             if 'SMART' in model_upper and ('110' in model_upper or '120' in model_upper):
-                return 'Electric'
+                return '전기'
 
-        return 'Unknown'
+        return ''
 
     def verify_document_type(self, text):
         """

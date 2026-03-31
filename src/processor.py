@@ -16,7 +16,7 @@ from src.ocr.paddle_engine import LocalPaddleEngine
 from src.ocr.preprocessor import ImagePreprocessor
 from src.parser.car_registration import CarRegistrationParser
 from src.parser.form_parser import FormParser
-from src.validator.vin_validator import VINValidator
+from src.validator.vin_validator import VINValidator, decode_model_year
 from src.validator.standards import (
     FUEL_TYPE_CORRECTIONS, DIMENSION_RANGES, UNIVERSAL_RANGES, NOISE_PATTERNS
 )
@@ -294,6 +294,13 @@ def process_single_file(file_path, filename):
             is_valid, validation_msg = _validator.validate(vin)
             parsed_data['vin_valid'] = is_valid
             parsed_data['vin_message'] = validation_msg
+
+            # 9. Decode model year from VIN if not already extracted
+            if vin and not parsed_data.get('model_year'):
+                vin_year = decode_model_year(vin)
+                if vin_year:
+                    parsed_data['model_year'] = str(vin_year)
+                    logger.info(f"Model year from VIN: {vin_year}")
 
             # Include OCR text preview for debugging
             parsed_data['_ocr_preview'] = ocr_text[:300].replace('\n', ' | ')

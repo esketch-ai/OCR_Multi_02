@@ -107,13 +107,26 @@ class LocalPaddleEngine:
             logging.error(f"PaddleOCR detection failed: {e}")
             return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': f'exception: {e}\n{traceback.format_exc()}'}
 
+    @staticmethod
+    def _poly_to_rect(poly):
+        """Convert 4-point polygon to (x1, y1, x2, y2) bounding rectangle."""
+        try:
+            if isinstance(poly, (list, tuple)) and len(poly) >= 4:
+                xs = [p[0] for p in poly]
+                ys = [p[1] for p in poly]
+                return (min(xs), min(ys), max(xs), max(ys))
+        except (TypeError, IndexError):
+            pass
+        return None
+
     def _detect_text_v3(self, image_path):
-        """PaddleOCR 3.x API using predict(). Handles multiple result formats."""
+        """PaddleOCR 3.x API using predict(). Handles multiple result formats.
+        Returns text + bounding boxes (ocr_results) for coordinate-based extraction."""
         result = self.ocr.predict(image_path)
 
         if not result:
             logging.warning("PaddleOCR 3.x predict() returned empty result")
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': 'predict() returned empty'}
+            return {'text': '', 'lines': [], 'ocr_results': [], 'avg_confidence': 0.0, 'debug': 'predict() returned empty'}
 
         # Build debug info for diagnostics
         debug_info = []
@@ -134,9 +147,10 @@ class LocalPaddleEngine:
                             debug_info.append(f"json.res keys={list(res.keys())}")
                         elif isinstance(res, list) and res:
                             debug_info.append(f"json.res[0] type={type(res[0]).__name__}, len={len(res)}")
+                            if isinstance(res[0], dict):
+                                debug_info.append(f"json.res[0] keys={list(res[0].keys())}")
                 else:
                     debug_info.append(f"json type={type(json_val).__name__}")
-            # Check string representation of first item
             first_str = str(first)[:300]
             debug_info.append(f"str(result[0])[:300]={first_str}")
         except Exception as e:
@@ -146,8 +160,9 @@ class LocalPaddleEngine:
 
         texts = []
         scores = []
+        bboxes = []  # parallel list of (x1,y1,x2,y2) or None
 
-        # Strategy 1: result[0].json['res'] with rec_texts/rec_scores (PaddleOCR 3.0-3.2)
+        # Strategy 1: result[0].json['res'] with rec_texts/rec_scores/dt_polys (PaddleOCR 3.0-3.2)
         try:
             ocr_result = result[0]
             if hasattr(ocr_result, 'json') and isinstance(ocr_result.json, dict):
@@ -155,13 +170,17 @@ class LocalPaddleEngine:
                 if isinstance(res, dict):
                     t = res.get('rec_texts', [])
                     s = res.get('rec_scores', [])
+                    polys = res.get('dt_polys', res.get('det_boxes', []))
                     if t:
                         texts, scores = list(t), list(s)
-                        logging.info(f"Parsed with Strategy 1 (json.res): {len(texts)} lines")
+                        for i in range(len(texts)):
+                            poly = polys[i] if i < len(polys) else None
+                            bboxes.append(self._poly_to_rect(poly) if poly is not None else None)
+                        logging.info(f"Parsed with Strategy 1 (json.res): {len(texts)} lines, {sum(1 for b in bboxes if b)} bboxes")
         except Exception as e:
             logging.debug(f"Strategy 1 failed: {e}")
 
-        # Strategy 2: result[0].json['res'] is a list of dicts with 'rec_text'/'rec_score'
+        # Strategy 2: result[0].json['res'] is a list of dicts with 'rec_text'/'rec_score'/'dt_poly'
         if not texts:
             try:
                 ocr_result = result[0]
@@ -172,11 +191,13 @@ class LocalPaddleEngine:
                             if isinstance(item, dict):
                                 t = item.get('rec_text', item.get('text', ''))
                                 s = item.get('rec_score', item.get('score', item.get('confidence', 0.0)))
+                                poly = item.get('dt_poly', item.get('det_box', item.get('bbox', None)))
                                 if t:
                                     texts.append(t)
                                     scores.append(float(s))
+                                    bboxes.append(self._poly_to_rect(poly) if poly is not None else None)
                         if texts:
-                            logging.info(f"Parsed with Strategy 2 (json.res list): {len(texts)} lines")
+                            logging.info(f"Parsed with Strategy 2 (json.res list): {len(texts)} lines, {sum(1 for b in bboxes if b)} bboxes")
             except Exception as e:
                 logging.debug(f"Strategy 2 failed: {e}")
 
@@ -185,12 +206,14 @@ class LocalPaddleEngine:
             try:
                 for item in result:
                     if isinstance(item, (list, tuple)) and len(item) >= 2:
+                        bbox_points = item[0]
                         text_info = item[1]
                         if isinstance(text_info, (list, tuple)) and len(text_info) >= 2:
                             texts.append(str(text_info[0]))
                             scores.append(float(text_info[1]))
+                            bboxes.append(self._poly_to_rect(bbox_points))
                 if texts:
-                    logging.info(f"Parsed with Strategy 3 (bbox tuples): {len(texts)} lines")
+                    logging.info(f"Parsed with Strategy 3 (bbox tuples): {len(texts)} lines, {sum(1 for b in bboxes if b)} bboxes")
             except Exception as e:
                 logging.debug(f"Strategy 3 failed: {e}")
 
@@ -205,6 +228,7 @@ class LocalPaddleEngine:
                             if t:
                                 texts.append(str(t))
                                 scores.append(float(s))
+                                bboxes.append(None)
                 if texts:
                     logging.info(f"Parsed with Strategy 4 (rec attr): {len(texts)} lines")
             except Exception as e:
@@ -214,14 +238,21 @@ class LocalPaddleEngine:
         if not texts:
             debug_str = '; '.join(debug_info)
             logging.warning(f"All parsing strategies failed. Debug: {debug_str}")
-            return {'text': '', 'lines': [], 'avg_confidence': 0.0, 'debug': debug_str}
+            return {'text': '', 'lines': [], 'ocr_results': [], 'avg_confidence': 0.0, 'debug': debug_str}
 
         full_text = '\n'.join(texts)
         lines = list(zip(texts, scores))
         avg_conf = sum(scores) / len(scores) if scores else 0.0
 
-        logging.info(f"OCR extracted {len(texts)} text lines, avg confidence: {avg_conf:.3f}")
-        return {'text': full_text, 'lines': lines, 'avg_confidence': avg_conf}
+        # Build ocr_results with bbox for coordinate-based extraction
+        ocr_results = []
+        for i, (t, s) in enumerate(zip(texts, scores)):
+            bbox = bboxes[i] if i < len(bboxes) else None
+            if bbox:
+                ocr_results.append({'text': t, 'confidence': s, 'bbox': bbox})
+
+        logging.info(f"OCR extracted {len(texts)} text lines, {len(ocr_results)} with bbox, avg confidence: {avg_conf:.3f}")
+        return {'text': full_text, 'lines': lines, 'ocr_results': ocr_results, 'avg_confidence': avg_conf}
 
     def _detect_text_v2(self, image_path):
         """PaddleOCR 2.x API using ocr(). Returns text + bounding boxes."""
