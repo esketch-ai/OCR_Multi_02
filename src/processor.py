@@ -70,7 +70,7 @@ def get_layout_engine():
 
 
 def warmup():
-    """Pre-initialize OCR and layout engines at startup to avoid first-request timeout."""
+    """Pre-initialize primary OCR engine at startup. English engine loads lazily on first use."""
     logger.info("Warming up OCR engines...")
     try:
         get_ocr_engine('korean')
@@ -78,16 +78,11 @@ def warmup():
     except Exception as e:
         logger.warning(f"PaddleOCR (korean) warmup failed: {e}")
     try:
-        get_ocr_engine('en')
-        logger.info("PaddleOCR (en) engine ready.")
-    except Exception as e:
-        logger.warning(f"PaddleOCR (en) warmup failed: {e}")
-    try:
         get_layout_engine()
         logger.info("Layout engine ready.")
     except Exception as e:
         logger.warning(f"Layout engine warmup failed: {e}")
-    logger.info("Warmup complete.")
+    logger.info("Warmup complete. (English OCR will init on first use)")
 
 
 def _correct_fuel_type_ocr(fuel_type):
