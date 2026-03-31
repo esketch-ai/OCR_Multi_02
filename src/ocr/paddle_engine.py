@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-PaddleOCR engine with singleton pattern and memory optimization.
+PaddleOCR engine with per-language singleton pattern and memory optimization.
 Compatible with both PaddleOCR 2.x and 3.x APIs.
+Thread-safe initialization for background warmup + concurrent requests.
 """
 import logging
 import gc
+import threading
 import warnings
 
 # Suppress warnings
@@ -16,70 +18,80 @@ class LocalPaddleEngine:
     PaddleOCR engine with per-language singleton pattern.
     Supports Korean and English text recognition.
     Auto-detects PaddleOCR version and uses appropriate API.
+    Thread-safe: uses lock to prevent race conditions during init.
     """
     _instances = {}  # lang -> instance
+    _lock = threading.Lock()
 
     def __new__(cls, lang='korean', enable_paddle=True):
-        if lang not in cls._instances:
-            cls._instances[lang] = super().__new__(cls)
-            cls._instances[lang]._init_done = False
-        return cls._instances[lang]
+        with cls._lock:
+            if lang not in cls._instances:
+                inst = super().__new__(cls)
+                inst._init_done = False
+                inst._init_lock = threading.Lock()
+                cls._instances[lang] = inst
+            return cls._instances[lang]
 
     def __init__(self, lang='korean', enable_paddle=True):
         if self._init_done:
             return
 
-        self.ocr = None
-        self.enabled = enable_paddle
-        self.lang = lang
-        self._api_version = None  # '2.x' or '3.x'
+        with self._init_lock:
+            # Double-check after acquiring lock
+            if self._init_done:
+                return
 
-        if not enable_paddle:
-            logging.info(f"PaddleOCR ({lang}) disabled by configuration")
-            self._init_done = True
-            return
-
-        try:
-            from paddleocr import PaddleOCR
-            import paddleocr
-            version = getattr(paddleocr, '__version__', '2.0.0')
-            major_version = int(version.split('.')[0])
-
-            if major_version >= 3:
-                self._api_version = '3.x'
-                logging.info(f"Initializing PaddleOCR {version} (3.x API, lang={lang})...")
-                self.ocr = PaddleOCR(
-                    lang=lang,
-                    use_doc_orientation_classify=False,
-                    use_doc_unwarping=False,
-                    use_textline_orientation=False,
-                    text_detection_model_name='PP-OCRv5_mobile_det',
-                    text_det_limit_side_len=1280,
-                    text_det_limit_type='max',
-                )
-            else:
-                self._api_version = '2.x'
-                logging.info(f"Initializing PaddleOCR {version} (2.x API, lang={lang})...")
-                self.ocr = PaddleOCR(
-                    lang=lang,
-                    use_angle_cls=False,
-                    use_gpu=False,
-                    det_limit_side_len=1280,
-                    det_limit_type='max',
-                )
-
-            logging.info(f"PaddleOCR ({lang}) initialized successfully (API: {self._api_version}).")
-
-        except ImportError:
-            logging.warning("PaddleOCR not installed. Disabling Paddle engine.")
             self.ocr = None
-            self.enabled = False
-        except Exception as e:
-            logging.error(f"Failed to init PaddleOCR ({lang}): {e}")
-            self.ocr = None
-            self.enabled = False
-        finally:
-            self._init_done = True
+            self.enabled = enable_paddle
+            self.lang = lang
+            self._api_version = None  # '2.x' or '3.x'
+
+            if not enable_paddle:
+                logging.info(f"PaddleOCR ({lang}) disabled by configuration")
+                self._init_done = True
+                return
+
+            try:
+                from paddleocr import PaddleOCR
+                import paddleocr
+                version = getattr(paddleocr, '__version__', '2.0.0')
+                major_version = int(version.split('.')[0])
+
+                if major_version >= 3:
+                    self._api_version = '3.x'
+                    logging.info(f"Initializing PaddleOCR {version} (3.x API, lang={lang})...")
+                    self.ocr = PaddleOCR(
+                        lang=lang,
+                        use_doc_orientation_classify=False,
+                        use_doc_unwarping=False,
+                        use_textline_orientation=False,
+                        text_detection_model_name='PP-OCRv5_mobile_det',
+                        text_det_limit_side_len=1280,
+                        text_det_limit_type='max',
+                    )
+                else:
+                    self._api_version = '2.x'
+                    logging.info(f"Initializing PaddleOCR {version} (2.x API, lang={lang})...")
+                    self.ocr = PaddleOCR(
+                        lang=lang,
+                        use_angle_cls=False,
+                        use_gpu=False,
+                        det_limit_side_len=1280,
+                        det_limit_type='max',
+                    )
+
+                logging.info(f"PaddleOCR ({lang}) initialized successfully (API: {self._api_version}).")
+
+            except ImportError:
+                logging.warning("PaddleOCR not installed. Disabling Paddle engine.")
+                self.ocr = None
+                self.enabled = False
+            except Exception as e:
+                logging.error(f"Failed to init PaddleOCR ({lang}): {e}")
+                self.ocr = None
+                self.enabled = False
+            finally:
+                self._init_done = True
 
     def detect_text(self, image_path):
         """

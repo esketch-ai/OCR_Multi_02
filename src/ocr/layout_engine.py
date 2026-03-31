@@ -6,6 +6,7 @@ Supports PaddleOCR 2.x (PPStructure) and 3.x (PPStructureV3) APIs.
 """
 import logging
 import gc
+import threading
 
 logger = logging.getLogger(__name__)
 
@@ -14,31 +15,38 @@ class LayoutEngine:
     """
     PP-Structure based layout analysis engine (singleton).
     Extracts document structure: tables (as HTML), text regions with bboxes.
+    Thread-safe initialization.
     """
     _instance = None
     _initialized = False
+    _lock = threading.Lock()
 
     def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super().__new__(cls)
+            return cls._instance
 
     def __init__(self):
         if LayoutEngine._initialized:
             return
 
-        self.engine = None
-        self.enabled = False
-        self._api_version = None
+        with LayoutEngine._lock:
+            if LayoutEngine._initialized:
+                return
 
-        try:
-            self._init_engine()
-        except ImportError:
-            logger.warning("PP-Structure not available. Layout analysis disabled.")
-        except Exception as e:
-            logger.error(f"Failed to init PP-Structure: {e}", exc_info=True)
-        finally:
-            LayoutEngine._initialized = True
+            self.engine = None
+            self.enabled = False
+            self._api_version = None
+
+            try:
+                self._init_engine()
+            except ImportError:
+                logger.warning("PP-Structure not available. Layout analysis disabled.")
+            except Exception as e:
+                logger.error(f"Failed to init PP-Structure: {e}", exc_info=True)
+            finally:
+                LayoutEngine._initialized = True
 
     def _init_engine(self):
         """Initialize PP-Structure engine, auto-detecting API version."""
