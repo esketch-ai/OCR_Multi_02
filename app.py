@@ -4,6 +4,7 @@ Gradio web app for Korean Vehicle Registration Certificate OCR.
 Deployed on HuggingFace Spaces.
 """
 import os
+os.environ["GRADIO_SSR_MODE"] = "false"
 import logging
 import traceback
 import gradio as gr
@@ -240,4 +241,4 @@ with gr.Blocks(
 warmup()
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860, ssr=False)
+    demo.launch(server_name="0.0.0.0", server_port=7860)
