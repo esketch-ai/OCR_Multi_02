@@ -139,12 +139,19 @@ class CarRegistrationParser:
 
         return result
 
+    @staticmethod
+    def _strip_spaces(text):
+        """Remove all spaces from text for matching spaced-out OCR."""
+        return re.sub(r'\s+', '', text)
+
     def _fallback_owner_name(self, result, text):
         """Extract owner name from the line BELOW the ⑨성명(명칭) header.
 
         Vehicle registration certs have table layout:
           ⑨ 성명(명칭)    생년월일     ← header line
              삼환교통      -           ← value line (target)
+
+        OCR often spaces out: 성 명 ( 명 칭 ), 삼 환 교 통
         """
         if result.get('owner_name'):
             return
@@ -152,49 +159,51 @@ class CarRegistrationParser:
         lines = text.split('\n')
 
         # Find the header line containing 성명/명칭/소유자 or ⑨
-        label_patterns = [
-            r'\uc131\s*\uba85',   # 성명
-            r'\uba85\s*\uce6d',   # 명칭
-            r'\uc18c\s*\uc720\s*\uc790',  # 소유자
-            r'\u2468',            # ⑨
-        ]
+        # Match against space-stripped version of each line
+        label_keywords = ['성명', '명칭', '소유자']
+        skip_keywords = ['생년월일', '주소', '주민등록', '사업자', '등록번호',
+                         '성명', '명칭', '소유자', '전화']
 
         for i, line in enumerate(lines):
-            is_label_line = any(re.search(p, line) for p in label_patterns)
-            if not is_label_line:
+            line_stripped = self._strip_spaces(line)
+            is_label = (
+                any(kw in line_stripped for kw in label_keywords)
+                or '⑨' in line
+            )
+            if not is_label:
                 continue
 
             # Strategy 1: Value is on the NEXT line (table layout)
-            if i + 1 < len(lines):
-                next_line = lines[i + 1].strip()
+            for offset in (1, 2):  # check next 2 lines
+                if i + offset >= len(lines):
+                    break
+                next_line = lines[i + offset].strip()
+                if not next_line:
+                    continue
+                next_stripped = self._strip_spaces(next_line)
                 # Skip if next line is another label/header
-                skip_words = ('생년월일', '주소', '주민등록', '사업자', '등록번호',
-                              '성명', '명칭', '소유자', '전화')
-                if next_line and not any(w in next_line for w in skip_words):
-                    # Take the first meaningful segment
-                    name = re.split(r'\s{2,}', next_line)[0].strip()
+                if any(kw in next_stripped for kw in skip_keywords):
+                    continue
+                # Take the first meaningful segment
+                # Handle spaced names: "삼 환 교 통" → "삼환교통"
+                name = re.split(r'\s{2,}', next_line)[0].strip()
+                name = self._clean_owner_name(name)
+                # If name is single chars with spaces, collapse them
+                if name and re.match(r'^[가-힣]\s+[가-힣]', name):
+                    name = self._strip_spaces(name)
                     name = self._clean_owner_name(name)
-                    # Must contain at least one Korean character
-                    if name and len(name) >= 2 and re.search(r'[가-힣]', name):
-                        result['owner_name'] = name
-                        logging.info(f"Owner name via next-line: {name}")
-                        return
+                if name and len(name) >= 2 and re.search(r'[가-힣]', name):
+                    result['owner_name'] = name
+                    logging.info(f"Owner name via next-line: {name}")
+                    return
 
             # Strategy 2: Value is on the same line after all headers
-            # e.g., "⑨ 성명(명칭) 생년월일 삼환교통 1990.01.01"
-            # Remove known header words and take first Korean word group
-            cleaned = line
-            for hp in label_patterns:
-                cleaned = re.sub(hp, '', cleaned)
-            # Remove other header words
-            for hw in ('생년월일', '주소', '주민등록번호', '사업자번호'):
-                cleaned = cleaned.replace(hw, '')
-            # Remove parentheses, circled numbers, digits-only
-            cleaned = re.sub(r'[\u2460-\u2469()（）\d.:]+', ' ', cleaned)
-            cleaned = cleaned.strip()
+            cleaned = line_stripped
+            for kw in label_keywords + ['생년월일', '주민등록번호', '사업자번호']:
+                cleaned = cleaned.replace(kw, '')
+            cleaned = re.sub(r'[\u2460-\u2469()（）\d.:]+', '', cleaned).strip()
             if cleaned:
-                name = re.split(r'\s{2,}', cleaned)[0].strip()
-                name = self._clean_owner_name(name)
+                name = self._clean_owner_name(cleaned)
                 if name and len(name) >= 2 and re.search(r'[가-힣]', name):
                     result['owner_name'] = name
                     logging.info(f"Owner name via same-line cleanup: {name}")
