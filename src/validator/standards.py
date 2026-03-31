@@ -126,6 +126,127 @@ DIMENSION_RANGES = {
     },
 }
 
+# ── 차명별 표준 규격 (차명 → 고정 스펙) ──
+# 차명+차종이 같으면 규격이 동일하므로, OCR 누락/오인식 시 보충·교정에 사용
+# 키: 차명 내 포함 키워드 (OCR 변형 대응), 값: 표준 규격
+MODEL_SPECS = {
+    # ── 현대 대형승합 ──
+    "뉴슈퍼에어로시티저상": {
+        "vehicle_type": "대형승합", "length_mm": "11090", "width_mm": "2490",
+        "height_mm": "3100", "total_weight_kg": "18000", "passenger_capacity": "44",
+        "fuel_type": "경유",
+    },
+    "뉴슈퍼에어로시티초저상": {
+        "vehicle_type": "대형승합", "length_mm": "11090", "width_mm": "2490",
+        "height_mm": "3100", "total_weight_kg": "18000", "passenger_capacity": "44",
+        "fuel_type": "경유",
+    },
+    "슈퍼에어로시티": {
+        "vehicle_type": "대형승합", "length_mm": "11090", "width_mm": "2490",
+        "height_mm": "3100", "total_weight_kg": "18000", "passenger_capacity": "44",
+        "fuel_type": "경유",
+    },
+    "일렉시티": {
+        "vehicle_type": "대형승합", "length_mm": "11090", "width_mm": "2490",
+        "height_mm": "3100", "total_weight_kg": "18000", "passenger_capacity": "44",
+        "fuel_type": "전기",
+    },
+    "일렉시티수소": {
+        "vehicle_type": "대형승합", "length_mm": "11090", "width_mm": "2490",
+        "height_mm": "3340", "total_weight_kg": "18000", "passenger_capacity": "33",
+        "fuel_type": "수소전기",
+    },
+    "유니버스": {
+        "vehicle_type": "대형승합", "length_mm": "12000", "width_mm": "2490",
+        "height_mm": "3575", "total_weight_kg": "18000", "passenger_capacity": "45",
+        "fuel_type": "경유",
+    },
+    # ── 현대 중형승합 ──
+    "그린시티": {
+        "vehicle_type": "중형승합", "length_mm": "9000", "width_mm": "2490",
+        "height_mm": "3050", "total_weight_kg": "14000", "passenger_capacity": "33",
+        "fuel_type": "경유",
+    },
+    "카운티": {
+        "vehicle_type": "소형승합", "length_mm": "7080", "width_mm": "2040",
+        "height_mm": "2755", "total_weight_kg": "8500", "passenger_capacity": "25",
+        "fuel_type": "경유",
+    },
+    # ── 현대 화물 ──
+    "마이티": {
+        "vehicle_type": "소형화물", "length_mm": "6085", "width_mm": "1995",
+        "height_mm": "2420", "total_weight_kg": "8500",
+        "fuel_type": "경유",
+    },
+    "파비스": {
+        "vehicle_type": "중형화물", "length_mm": "8590", "width_mm": "2340",
+        "height_mm": "2945", "total_weight_kg": "15000",
+        "fuel_type": "경유",
+    },
+    "엑시언트": {
+        "vehicle_type": "대형화물", "length_mm": "11550", "width_mm": "2495",
+        "height_mm": "3465", "total_weight_kg": "40000",
+        "fuel_type": "경유",
+    },
+    # ── 자일대우 대형승합 ──
+    "BS110": {
+        "vehicle_type": "대형승합", "length_mm": "11050", "width_mm": "2490",
+        "height_mm": "3150", "total_weight_kg": "16500", "passenger_capacity": "43",
+        "fuel_type": "경유",
+    },
+    "BS106": {
+        "vehicle_type": "대형승합", "length_mm": "10555", "width_mm": "2490",
+        "height_mm": "3090", "total_weight_kg": "16000", "passenger_capacity": "40",
+        "fuel_type": "경유",
+    },
+    "FX120": {
+        "vehicle_type": "대형승합", "length_mm": "12000", "width_mm": "2490",
+        "height_mm": "3575", "total_weight_kg": "18000", "passenger_capacity": "45",
+        "fuel_type": "경유",
+    },
+    "FX116": {
+        "vehicle_type": "대형승합", "length_mm": "11635", "width_mm": "2490",
+        "height_mm": "3575", "total_weight_kg": "18000", "passenger_capacity": "43",
+        "fuel_type": "경유",
+    },
+    # ── 자일대우 중형승합 ──
+    "레스타": {
+        "vehicle_type": "소형승합", "length_mm": "7080", "width_mm": "2040",
+        "height_mm": "2705", "total_weight_kg": "8500", "passenger_capacity": "25",
+        "fuel_type": "경유",
+    },
+}
+
+
+def lookup_model_specs(model_name):
+    """차명에서 표준 규격 조회. 키워드 포함 매칭 (OCR 변형 대응).
+
+    Args:
+        model_name: OCR로 추출한 차명 문자열
+
+    Returns:
+        dict or None: 매칭된 표준 규격 딕셔너리
+    """
+    if not model_name:
+        return None
+
+    # 공백 제거 후 매칭
+    clean = model_name.replace(' ', '')
+
+    # 1. 긴 키워드부터 매칭 (초저상 > 저상 > 에어로시티 순)
+    for keyword in sorted(MODEL_SPECS.keys(), key=len, reverse=True):
+        if keyword in clean:
+            return MODEL_SPECS[keyword]
+
+    # 2. 영문 모델명 (대소문자 무시)
+    clean_upper = clean.upper()
+    for keyword in MODEL_SPECS:
+        if keyword.upper() in clean_upper:
+            return MODEL_SPECS[keyword]
+
+    return None
+
+
 # ── 차종 미확인 시 전체 허용 범위 ──
 UNIVERSAL_RANGES = {
     "length_mm": (1400, 16000),

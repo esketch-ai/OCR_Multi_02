@@ -18,7 +18,8 @@ from src.parser.car_registration import CarRegistrationParser
 from src.parser.form_parser import FormParser
 from src.validator.vin_validator import VINValidator, decode_model_year
 from src.validator.standards import (
-    FUEL_TYPE_CORRECTIONS, DIMENSION_RANGES, UNIVERSAL_RANGES, NOISE_PATTERNS
+    FUEL_TYPE_CORRECTIONS, DIMENSION_RANGES, UNIVERSAL_RANGES, NOISE_PATTERNS,
+    lookup_model_specs,
 )
 from src.config import Config
 
@@ -85,6 +86,53 @@ def _correct_fuel_type_ocr(fuel_type):
             return correct
 
     return fuel_type
+
+
+def _apply_model_specs(parsed_data):
+    """차명 기반 표준 규격 조회 → 빈 필드 보충 + 오인식 교정.
+
+    차명+차종이 같으면 길이/너비/높이/총중량/승차정원이 동일하므로,
+    OCR 누락 필드를 표준값으로 채우고, 범위 벗어나는 값을 교정.
+    """
+    model_name = parsed_data.get('model_name')
+    specs = lookup_model_specs(model_name)
+    if not specs:
+        return
+
+    spec_fields = ['vehicle_type', 'length_mm', 'width_mm', 'height_mm',
+                    'total_weight_kg', 'passenger_capacity', 'fuel_type']
+
+    filled = []
+    corrected = []
+    for field in spec_fields:
+        spec_val = specs.get(field)
+        if not spec_val:
+            continue
+
+        current = parsed_data.get(field)
+
+        # Fill missing fields
+        if not current:
+            parsed_data[field] = spec_val
+            filled.append(f"{field}={spec_val}")
+            continue
+
+        # Correct numeric fields that deviate >20% from spec
+        if field in ('length_mm', 'width_mm', 'height_mm', 'total_weight_kg', 'passenger_capacity'):
+            try:
+                cur_num = int(current)
+                spec_num = int(spec_val)
+                if spec_num > 0 and abs(cur_num - spec_num) / spec_num > 0.2:
+                    parsed_data[field] = spec_val
+                    corrected.append(f"{field}: {current}→{spec_val}")
+            except (ValueError, TypeError):
+                parsed_data[field] = spec_val
+                corrected.append(f"{field}: '{current}'→{spec_val}")
+
+    if filled:
+        logger.info(f"Model specs filled [{model_name}]: {', '.join(filled)}")
+    if corrected:
+        logger.info(f"Model specs corrected [{model_name}]: {', '.join(corrected)}")
 
 
 def _validate_dimensions_by_type(parsed_data):
@@ -276,20 +324,23 @@ def process_single_file(file_path, filename):
             if layout_engine:
                 _apply_layout_ensemble(parsed_data, layout_engine, image_path, img_h, img_w)
 
-            # 6. Apply fuel type OCR corrections (자동차관리법)
+            # 6. Model spec lookup: fill missing fields from known model specs
+            _apply_model_specs(parsed_data)
+
+            # 7. Apply fuel type OCR corrections (자동차관리법)
             if parsed_data.get('fuel_type'):
                 parsed_data['fuel_type'] = _correct_fuel_type_ocr(parsed_data['fuel_type'])
 
-            # 7. Validate dimensions against vehicle type standards
+            # 8. Validate dimensions against vehicle type standards
             _validate_dimensions_by_type(parsed_data)
 
-            # 8. Validate VIN
+            # 9. Validate VIN
             vin = parsed_data.get('vin')
             is_valid, validation_msg = _validator.validate(vin)
             parsed_data['vin_valid'] = is_valid
             parsed_data['vin_message'] = validation_msg
 
-            # 9. Decode model year from VIN if not already extracted
+            # 10. Decode model year from VIN if not already extracted
             if vin and not parsed_data.get('model_year'):
                 vin_year = decode_model_year(vin)
                 if vin_year:
