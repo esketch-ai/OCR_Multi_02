@@ -10,7 +10,7 @@ import gradio as gr
 import pandas as pd
 from datetime import datetime
 
-from src.processor import process_batch, results_to_rows
+from src.processor import process_batch, results_to_rows, warmup
 from src.storage.excel_writer import ExcelWriter
 from src.config import Config
 
@@ -180,7 +180,7 @@ with gr.Blocks(
     title="자동차등록증 OCR",
     theme=gr.themes.Soft(),
 ) as demo:
-    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v32</sub>")
+    gr.Markdown("# 자동차등록증 OCR 시스템 <sub style='color:gray;font-weight:normal'>v33</sub>")
     gr.Markdown("자동차등록증 이미지 또는 PDF를 업로드하면 OCR로 정보를 추출하여 엑셀 파일로 저장합니다.")
 
     with gr.Row():
@@ -236,5 +236,8 @@ with gr.Blocks(
         outputs=[result_table, excel_download, summary_text],
     )
 
+# Pre-initialize OCR engines at import time to avoid first-request timeout on HF Spaces
+warmup()
+
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860, ssr=False)
