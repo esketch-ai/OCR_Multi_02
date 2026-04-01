@@ -139,7 +139,7 @@ def run_ocr(files, progress=gr.Progress()):
                 summary += f"\n  - {r['filename']}: {r.get('message', 'unknown')}"
             elif r['status'] == 'success':
                 d = r['data']
-                vin_info = d.get('vin', '?')
+                vin_info = d.get('vin') or '?'
                 vin_msg = d.get('vin_message', '')
                 if vin_msg and vin_info != '?':
                     vin_info += f" [{vin_msg}]"
