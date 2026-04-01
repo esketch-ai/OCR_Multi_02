@@ -223,6 +223,21 @@ def _extract_bbox_fields(ocr_results, img_height, img_width):
     if vehicle_type:
         result['vehicle_type'] = vehicle_type
 
+    # ⑥차대번호 VIN (Y: 19.5-23%, X: 17-70%)
+    # Collect ALL text in the VIN zone and concatenate for VIN extraction
+    vin_zone_results = [
+        r for r in ocr_results
+        if in_zone(r, 19.5, 23, 17, 70)
+        and r['confidence'] >= 0.3  # Lower threshold for VIN
+    ]
+    if vin_zone_results:
+        # Sort by X position (left to right)
+        vin_zone_results.sort(key=lambda r: r['bbox'][0])
+        vin_zone_text = ' '.join(r['text'] for r in vin_zone_results)
+        # Store raw zone text for the parser to process
+        result['_vin_zone_text'] = vin_zone_text
+        logger.info(f"VIN zone bbox text: {vin_zone_text}")
+
     return result
 
 
@@ -255,6 +270,61 @@ def _apply_layout_ensemble(parsed_data, layout_engine, image_path, img_h, img_w)
 
     except Exception as e:
         logger.warning(f"Layout ensemble failed (non-fatal): {e}")
+
+
+def _try_extract_vin_from_zone(parsed_data, vin_zone_text):
+    """Try to extract VIN from bbox-detected VIN zone text.
+
+    Uses aggressive transliteration and cleanup since the zone is spatially
+    confirmed to be the VIN area on the registration certificate.
+    """
+    import re
+    from src.validator.vin_validator import correct_vin_ocr, is_valid_structure
+
+    # Korean char → Latin mapping for OCR misreads
+    korean_to_latin = _parser.KOREAN_TO_LATIN
+
+    # Transliterate Korean chars to Latin
+    trans = []
+    for ch in vin_zone_text:
+        if ch in korean_to_latin:
+            trans.append(korean_to_latin[ch])
+        elif '\uAC00' <= ch <= '\uD7A3':
+            # Skip full Korean syllables
+            continue
+        else:
+            trans.append(ch)
+    zone_clean = ''.join(trans)
+
+    # Strip to alphanumeric only
+    zone_alpha = re.sub(r'[^A-Za-z0-9]', '', zone_clean).upper()
+    logger.info(f"VIN zone alpha: {zone_alpha}")
+
+    if len(zone_alpha) < 17:
+        return
+
+    # Try to find valid 17-char VIN in the concatenated alpha text
+    for i in range(len(zone_alpha) - 16):
+        candidate = zone_alpha[i:i+17]
+        vin = correct_vin_ocr(candidate)
+        valid, _ = is_valid_structure(vin)
+        if valid:
+            parsed_data['vin'] = vin
+            logger.info(f"VIN via bbox zone extraction: {vin}")
+            return
+
+    # Try known Korean WMI prefixes
+    korean_prefixes = ['KMJ', 'KMH', 'KME', 'KMF', 'KMK', 'KNA', 'KNC', 'KND',
+                       'KPT', 'KPA', 'KL1', 'KLA', 'KLB', 'KNM']
+    for prefix in korean_prefixes:
+        idx = zone_alpha.find(prefix)
+        if idx >= 0 and idx + 17 <= len(zone_alpha):
+            candidate = zone_alpha[idx:idx+17]
+            vin = correct_vin_ocr(candidate)
+            if len(vin) == 17 and vin.isalnum() and not any(c in vin for c in 'IOQ'):
+                parsed_data['vin'] = vin
+                logger.info(f"VIN via bbox zone prefix match ({prefix}): {vin}")
+                return
 
 
 def _is_noise(text):
@@ -314,6 +384,12 @@ def process_single_file(file_path, filename):
             if ocr_results:
                 if img_w and img_h:
                     bbox_fields = _extract_bbox_fields(ocr_results, img_h, img_w)
+
+                    # Special handling: VIN zone text for aggressive VIN extraction
+                    vin_zone_text = bbox_fields.pop('_vin_zone_text', None)
+                    if vin_zone_text and not parsed_data.get('vin'):
+                        _try_extract_vin_from_zone(parsed_data, vin_zone_text)
+
                     for field, value in bbox_fields.items():
                         if not parsed_data.get(field):
                             parsed_data[field] = value

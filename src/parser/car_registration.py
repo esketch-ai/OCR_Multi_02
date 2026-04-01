@@ -15,6 +15,21 @@ class CarRegistrationParser:
     # Korean VIN prefixes (World Manufacturer Identifier)
     VIN_PREFIXES = ('KM', 'KL', 'KN', 'KP', 'LA', 'LF', 'LG', 'LJ', 'KMJ', 'KMH', 'KNA')
 
+    # Korean character → Latin mapping for VIN OCR misreads
+    # Korean PaddleOCR often reads Latin letters as visually similar Korean chars
+    KOREAN_TO_LATIN = {
+        'ㅋ': 'K', 'ㅁ': 'M', 'ㅎ': 'H', 'ㅈ': 'J', 'ㅂ': 'B',
+        'ㄴ': 'N', 'ㅍ': 'P', 'ㅅ': 'S', 'ㅌ': 'T', 'ㅊ': 'C',
+        'ㄱ': 'G', 'ㅇ': '0', 'ㄹ': 'L', 'ㅐ': 'H', 'ㅣ': '1',
+        'ㅡ': '-', 'ㅓ': 'E', 'ㅏ': 'A', 'ㅜ': 'U',
+        # Full-width chars
+        'Ｋ': 'K', 'Ｍ': 'M', 'Ｈ': 'H', 'Ｊ': 'J', 'Ｎ': 'N',
+        'Ｐ': 'P', 'Ｓ': 'S', 'Ｔ': 'T', 'Ｃ': 'C', 'Ｂ': 'B',
+        'Ｌ': 'L', 'Ｅ': 'E', 'Ａ': 'A', 'Ｆ': 'F', 'Ｇ': 'G',
+        '０': '0', '１': '1', '２': '2', '３': '3', '４': '4',
+        '５': '5', '６': '6', '７': '7', '８': '8', '９': '9',
+    }
+
     # Fuel type mappings (Korean -> standardized Korean output)
     # Hydrogen keywords MUST be checked before Electric (수소전기 contains 전기)
     FUEL_TYPES = {
@@ -209,6 +224,42 @@ class CarRegistrationParser:
                     logging.info(f"Owner name via same-line cleanup: {name}")
                     return
 
+    def _transliterate_vin_text(self, text):
+        """Transliterate Korean/full-width characters to Latin for VIN extraction.
+
+        Korean PaddleOCR reads VINs like KMJNE18BPSC000123 but may output
+        Korean jamo or full-width chars for some letters. This converts them back.
+        """
+        result = []
+        for ch in text:
+            if ch in self.KOREAN_TO_LATIN:
+                result.append(self.KOREAN_TO_LATIN[ch])
+            elif '\uAC00' <= ch <= '\uD7A3':
+                # Full Korean syllable - skip (not a VIN character)
+                continue
+            else:
+                result.append(ch)
+        return ''.join(result)
+
+    def _extract_vin_zone_text(self, text):
+        """Extract text from the VIN zone (near 차대번호 label).
+
+        Returns the raw text near the VIN label for aggressive extraction.
+        """
+        lines = text.split('\n')
+        vin_zone_lines = []
+
+        for i, line in enumerate(lines):
+            line_stripped = self._strip_spaces(line)
+            # Look for 차대번호 label or ⑥ marker
+            if '차대번호' in line_stripped or '⑥' in line:
+                # Include this line and next 3 lines
+                for j in range(i, min(len(lines), i + 4)):
+                    vin_zone_lines.append(lines[j])
+                break
+
+        return '\n'.join(vin_zone_lines)
+
     def _fallback_vin(self, result, text):
         """Extract VIN using label-independent patterns."""
         if result.get('vin') and len(result['vin']) == 17:
@@ -217,40 +268,72 @@ class CarRegistrationParser:
         # Pre-process: build space-stripped version for matching VINs split by spaces
         text_nospace = re.sub(r'\s+', '', text)
 
-        # First pass: exact 17-char VINs from original text
-        for pattern in self.vin_patterns:
-            matches = re.findall(pattern, text, re.IGNORECASE)
-            for match in matches:
-                vin = self._correct_vin_ocr(match.upper().strip())
-                if self._is_valid_vin(vin):
-                    result['vin'] = vin
-                    logging.info(f"VIN via fallback: {vin}")
-                    return
+        # Also build transliterated versions (Korean jamo → Latin)
+        text_trans = self._transliterate_vin_text(text)
+        text_trans_nospace = re.sub(r'\s+', '', text_trans)
 
-        # Second pass: try space-stripped text (PaddleOCR splits VIN with spaces)
-        for pattern in self.vin_patterns:
-            matches = re.findall(pattern, text_nospace, re.IGNORECASE)
-            for match in matches:
-                vin = self._correct_vin_ocr(match.upper().strip())
-                if self._is_valid_vin(vin):
-                    result['vin'] = vin
-                    logging.info(f"VIN via space-stripped fallback: {vin}")
-                    return
+        # All text variants to try (original, space-stripped, transliterated, both)
+        text_variants = [
+            ('original', text),
+            ('space-stripped', text_nospace),
+            ('transliterated', text_trans),
+            ('trans+nospace', text_trans_nospace),
+        ]
 
-        # Third pass: near-valid VINs (15-17 chars with Korean prefix)
+        # First pass: exact 17-char VINs from all text variants
+        for variant_name, variant_text in text_variants:
+            for pattern in self.vin_patterns:
+                matches = re.findall(pattern, variant_text, re.IGNORECASE)
+                for match in matches:
+                    vin = self._correct_vin_ocr(match.upper().strip())
+                    if self._is_valid_vin(vin):
+                        result['vin'] = vin
+                        logging.info(f"VIN via fallback ({variant_name}): {vin}")
+                        return
+
+        # Second pass: near-valid VINs (15-17 chars with Korean prefix)
         near_vin_patterns = [
             r'\b(K[A-Z0-9]{14,16})\b',
             r'\b(L[A-Z0-9]{14,16})\b',
         ]
-        for src in (text, text_nospace):
+        for variant_name, variant_text in text_variants:
             for pattern in near_vin_patterns:
-                matches = re.findall(pattern, src, re.IGNORECASE)
+                matches = re.findall(pattern, variant_text, re.IGNORECASE)
                 for match in matches:
                     vin = self._correct_vin_ocr(match.upper().strip())
                     if 15 <= len(vin) <= 17 and vin.isalnum():
                         if not any(c in vin for c in 'IOQ'):
                             result['vin'] = vin
-                            logging.info(f"VIN via near-match ({len(vin)} chars): {vin}")
+                            logging.info(f"VIN via near-match ({variant_name}, {len(vin)} chars): {vin}")
+                            return
+
+        # Third pass: VIN zone extraction - find text near 차대번호 label
+        # and aggressively try to extract alphanumeric sequences
+        vin_zone = self._extract_vin_zone_text(text)
+        if vin_zone:
+            # Transliterate and strip everything non-alphanumeric
+            zone_trans = self._transliterate_vin_text(vin_zone)
+            zone_alpha = re.sub(r'[^A-Za-z0-9]', '', zone_trans).upper()
+
+            # Try to find a 17-char VIN-like substring
+            for i in range(len(zone_alpha) - 16):
+                candidate = zone_alpha[i:i+17]
+                vin = self._correct_vin_ocr(candidate)
+                if self._is_valid_vin(vin):
+                    result['vin'] = vin
+                    logging.info(f"VIN via zone extraction: {vin}")
+                    return
+
+            # Try Korean VIN prefixes in the zone alpha text
+            for prefix in ('KMJ', 'KMH', 'KME', 'KMF', 'KMK', 'KNA', 'KNC', 'KND', 'KPT', 'KPA', 'KL1', 'KLA', 'KLB', 'KNM'):
+                idx = zone_alpha.find(prefix)
+                if idx >= 0 and idx + 17 <= len(zone_alpha):
+                    candidate = zone_alpha[idx:idx+17]
+                    vin = self._correct_vin_ocr(candidate)
+                    if len(vin) == 17 and vin.isalnum():
+                        if not any(c in vin for c in 'IOQ'):
+                            result['vin'] = vin
+                            logging.info(f"VIN via zone prefix match ({prefix}): {vin}")
                             return
 
     def _fallback_vehicle_no(self, result, text):
